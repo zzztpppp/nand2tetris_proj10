@@ -54,7 +54,7 @@ class CompilationEngine(object):
         # Compile the head of class variable declaration.
         self.compilation_result.append('<classVarDec>')
         self._eat(self._get_the_token())
-        if self._get_the_token_type() == 'identifier' or self._get_the_token() in VAR_TYPE:
+        if self._get_the_token_type() == 'identifier' or self._get_the_token() in self.VAR_TYPE:
             self._eat(self._get_the_token())
         else:
             raise ValueError('Variable type should be specified')
@@ -85,7 +85,7 @@ class CompilationEngine(object):
         
         # Then token after the subroutine signiture should be
         # the return type of the subroutine
-        if self._get_the_token_type() in PRIMITIVE_RETURN_TYPE or self._get_the_token_type == 'identifier':
+        if self._get_the_token_type() in self.PRIMITIVE_RETURN_TYPE or self._get_the_token_type() == 'identifier':
             self._eat(self._get_the_token())
         
         else:
@@ -106,9 +106,7 @@ class CompilationEngine(object):
         # and the wrapping curly brackets.
         self.compile_subroutine_body()
         self.compilation_result.append('</subroutineDec>')
-        
-        
-        
+
         return
         
     def compile_subroutine_body(self):
@@ -123,7 +121,7 @@ class CompilationEngine(object):
         while self._get_the_token() == 'var':
             self.compile_var_dec()
         
-        if self._get_the_token() not in STATEMENTS_TYPES:
+        if self._get_the_token() not in self.STATEMENTS_TYPES:
             raise ValueError('There is no statement in this subroutine!')
         self.compile_statments()
         
@@ -131,8 +129,7 @@ class CompilationEngine(object):
         self.compilation_result.append('/subroutineBody')
         
         return
-    
-    
+
     def compile_parameter_list(self):
         """
         Comile a (list of) parameters.
@@ -141,7 +138,7 @@ class CompilationEngine(object):
         
         # Compile 0 or more comma seperated parameters
         while self.current_token != ')':
-            if self._get_the_token_type() in VAR_TYPE or self._get_the_token_type() == 'identifier':
+            if self._get_the_token_type() in self.VAR_TYPE or self._get_the_token_type() == 'identifier':
                 self.eat(self._get_the_token())
             else:
                 raise ValueError('Illegal parameter type.')
@@ -167,7 +164,7 @@ class CompilationEngine(object):
         """
         self._eat('var')
         
-        if self._get_the_token_type() in VAR_TYPE or self._get_the_token_type() == 'identifier':
+        if self._get_the_token_type() in self.VAR_TYPE or self._get_the_token_type() == 'identifier':
             self._eat(self._get_the_token())
         else:
             raise ValueError('Illegal variable type!')
@@ -186,7 +183,7 @@ class CompilationEngine(object):
         Compile a sequence of statements, not including the enclosing curly brackets.
         """
         returned = False
-        while self._get_the_token() in STATEMENTS_TYPES:
+        while self._get_the_token() in self.STATEMENTS_TYPES:
             the_token = self._get_the_token()
             if the_token == 'do':
                 self.compile_do()
@@ -209,6 +206,7 @@ class CompilationEngine(object):
         """
         Compiles a do statement.
         """
+        self.compilation_result.append('<doStatement>')
         self._eat('do')
         
         self._eat(self._get_the_token())
@@ -216,33 +214,70 @@ class CompilationEngine(object):
         self.compile_expression_list()
         self._eat(')')
         self._eat(';')
-        
+        self.compilation_result.append('</doStatement>')
+
         return
         
     def compile_let(self):
         """
         Compile a let statement.
         """
+        self.compilation_result.append('<letStatement>')
         self._eat('let')
-        self._eat()
+        if self._get_token_type() == 'identifier':
+            self._eat(self._get_the_token())
+
+        # May be an array element assignment
+        if self._get_the_token() == '[':
+            self._eat('[')
+            self.compile_expression()
+            self._eat(']')
+
+        self._eat('=')
+        self.compile_expression()
+
+        self.compilation_result.append('</letStatement>')
+
+        return
         
     def compile_while(self):
         """
         Compile a while statement.
         """
-        pass
+        self.compilation_result.append('<whileStatement>')
+        self._eat('while')
+        self._eat('(')
+        self.compile_expression()
+        self._eat(')')
+        self._eat('{')
+        self.compile_statements()
+        self._eat('}')
+        self.compilation_result.append('</whileStatement>')
+
+        return
     
     def compile_return(self):
         """
         Compile a return statement.
         """
-        pass
+        self.compilation_result.append('<returnStatement>')
+        self._eat('return')
+        self.compile_expression()
+        self.compilation_result.append('</returnStatement>')
+
+        return
     
     def compile_if(self):
         """
         Compile a if statement.
         """
-        pass
+        self.compilation_result.append('<ifStatement>')
+        self._eat('if')
+        self._eat('(')
+        self.compile_expression()
+        self._eat(')')
+
+
         
     def compile_expression(self):
         """
@@ -277,7 +312,8 @@ class CompilationEngine(object):
                  The current token.
         """
 
-        pass
+        the_token = self._get_the_token()
+        return
     
     def _get_the_token(self):
-        pass
+        the_token = self.token_list[self.current_token]
