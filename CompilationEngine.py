@@ -1,5 +1,6 @@
 # This is the jack language compilation engine
 
+
 class CompilationEngine(object):
     
     SUBROUTINE_TYPE = ['function', 'method', 'constructor']
@@ -7,7 +8,9 @@ class CompilationEngine(object):
     VAR_TYPE = ['int', 'char', 'boolean']
     PRIMITIVE_RETURN_TYPE = ['int', 'char', 'boolean', 'void']
     STATEMENTS_TYPES = ['let', 'do', 'while', 'if', 'return']
-    
+    UNARY_OP = ['-', '~']
+    IF_STATEMENTS = ['if', 'else']
+
     def __init__(self, input_tokens):
         """
         :param input_tokens: A list of strings, each of which stands for a token
@@ -33,7 +36,7 @@ class CompilationEngine(object):
         self._eat('class')
         if self._get_the_token_type() != 'identifier':
             raise ValueError('An identifier must be followed by a class declaration')
-        self.eat(self._get_the_token())
+        self._eat(self._get_the_token())
         self._eat('{')
 
         # Compile the class body recursively
@@ -89,7 +92,7 @@ class CompilationEngine(object):
             self._eat(self._get_the_token())
         
         else:
-             raise ValueError('Illegal return type!')
+            raise ValueError('Illegal return type!')
         
         if self._get_the_token_type() == 'identifier':
             self._eat(self._get_the_token())
@@ -123,7 +126,7 @@ class CompilationEngine(object):
         
         if self._get_the_token() not in self.STATEMENTS_TYPES:
             raise ValueError('There is no statement in this subroutine!')
-        self.compile_statments()
+        self.compile_statements()
         
         self._eat('}')
         self.compilation_result.append('/subroutineBody')
@@ -139,11 +142,10 @@ class CompilationEngine(object):
         # Compile 0 or more comma seperated parameters
         while self.current_token != ')':
             if self._get_the_token_type() in self.VAR_TYPE or self._get_the_token_type() == 'identifier':
-                self.eat(self._get_the_token())
+                self._eat(self._get_the_token())
             else:
                 raise ValueError('Illegal parameter type.')
-            
-            
+
             if self._get_the_token_type() == 'identifier':
                 self._eat(self._get_the_token())
             else:
@@ -224,7 +226,7 @@ class CompilationEngine(object):
         """
         self.compilation_result.append('<letStatement>')
         self._eat('let')
-        if self._get_token_type() == 'identifier':
+        if self._get_the_token() == 'identifier':
             self._eat(self._get_the_token())
 
         # May be an array element assignment
@@ -272,13 +274,19 @@ class CompilationEngine(object):
         Compile a if statement.
         """
         self.compilation_result.append('<ifStatement>')
-        self._eat('if')
-        self._eat('(')
-        self.compile_expression()
-        self._eat(')')
+        for clause in self.IF_STATEMENTS:
+            if self._get_the_token() == clause:
 
+                self._eat(self._get_the_token())
+                self._eat('(')
+                self.compile_expression()
+                self._eat(')')
+                self._eat('{')
+                self.compile_statements()
+                self._eat('}')
+        self.compilation_result.append('</ifStatement>')
+        return
 
-        
     def compile_expression(self):
         """
         Compile an expression.
@@ -294,26 +302,50 @@ class CompilationEngine(object):
     def compile_expression_list(self):
         """
         Compile a list of expressions.
+        Typically in a subroutine call.
         """
-        pass
+        self.compilation_result.append('<expressionList>')
+        while self._get_the_token() != ')':
+            self.compile_expression()
+            self._eat(',')
+        self.compilation_result.append('</expressionList>')
+        return
         
     def _eat(self, token):
         """
         :param token: String
                       The token to advance over.
         Ouput the given token and advance the token list.
+
+        Raise Value Error if the given token does not match
+        the current token.
         """
-        pass
-    
-    def _get_token_type(self):
+        if self._get_the_token() != token:
+            raise ValueError('No {0} to eat'.format(token))
+
+        raw_token = self.token_list[self.current_token]
+        self.compilation_result.append(raw_token)
+        self.current_token += 1
+        self.num_tokens_left -= 1
+        return
+
+    def _get_the_token_type(self):
         """
         Return the current the token
         :return: String
                  The current token.
         """
 
-        the_token = self._get_the_token()
-        return
+        raw_token = self.token_list[self.current_token].strip()
+        raw_token = raw_token.split()
+        return raw_token[0].strip('<>')
     
     def _get_the_token(self):
-        the_token = self.token_list[self.current_token]
+        """
+        Get the current token.
+        :return: The token with tag stripped.
+        """
+        raw_token = self.token_list[self.current_token]
+        raw_token = raw_token.split()
+
+        return raw_token[1]
