@@ -10,6 +10,8 @@ class CompilationEngine(object):
     STATEMENTS_TYPES = ['let', 'do', 'while', 'if', 'return']
     UNARY_OP = ['-', '~']
     IF_STATEMENTS = ['if', 'else']
+    TERM_TYPE = ['integerConstant', 'stringConstant', 'keywordConstant']
+    KEYWORD_CONST = ['true', 'false', 'null', 'this']
 
     def __init__(self, input_tokens):
         """
@@ -297,8 +299,42 @@ class CompilationEngine(object):
         """
         Compile a term.
         """
-        pass
-        
+        the_token = self._get_the_token()
+        the_type = self._get_the_token_type()
+        self.compilation_result.append('<term>')
+        if the_token in self.KEYWORD_CONST:
+            self._eat(the_token)
+
+        elif the_type in self.TERM_TYPE:
+            self._eat(the_token)
+
+        elif the_type == 'identifier':
+            self._eat(the_type)
+
+            # May be addressing an array element
+            if self._get_the_token() == '[':
+                self._eat('[')
+                self.compile_expression()
+                self._eat(']')
+
+            # May be a subroutine call
+            elif self._get_the_token() == '(':
+                self._eat('(')
+                self.compile_expression_list()
+                self._eat(')')
+
+        elif the_token == '(':
+            self._eat('(')
+            self.compile_expression()
+            self._eat(')')
+
+        if the_token in self.UNARY_OP:
+            self.eat(the_token)
+            self.compile_term()
+
+        self.compilation_result.append('</term>')
+        return
+
     def compile_expression_list(self):
         """
         Compile a list of expressions.
