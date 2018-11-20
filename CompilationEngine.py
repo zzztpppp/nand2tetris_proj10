@@ -1,6 +1,45 @@
 # This is the jack language compilation engine
 
 
+def compile_file(file):
+    """
+    Compile a given file or a whole directory.
+    :param : string
+                 A file name or directory name.
+    :return:
+    """
+    import os
+    if os.path.isdir(file):
+        for name in os.listdir(file):
+            file_path = os.path.join(file, name)
+            compile_file(file_path)
+    else:
+        _compile_file(file)
+
+    return
+
+
+def _compile_file(file_path):
+    """
+    Compile a single file
+    :param file_path: string
+    :return:
+    """
+    if not file_path.endswith('.xml'):
+        return
+
+    with open(file_path) as f:
+        tokens = f.readlines()
+        # Ignore the '<tokens>' signature
+        compiler = CompilationEngine(tokens[1:-1])
+        result = compiler.get_result()
+
+    # Write the result into .xml file
+    with open(file_path[0:file_path.find('.') - 1] + '.xml', 'w') as output:
+        output.writelines(result)
+    return
+
+
 class CompilationEngine(object):
     
     SUBROUTINE_TYPE = ['function', 'method', 'constructor']
@@ -45,6 +84,8 @@ class CompilationEngine(object):
         # Compile the class body recursively
         while self.num_tokens_left > 0:
             the_token = self._get_the_token()
+            print(the_token)
+
             if the_token in self.CLASS_VAR_TYPE:
                 self.compile_class_var_dec()
 
@@ -68,7 +109,7 @@ class CompilationEngine(object):
         # Compile the variable(s) declared.
         while self._get_the_token() != ';':
             if self._get_the_token_type() == 'identifier':
-                self._eat(self._get_the_token)
+                self._eat(self._get_the_token())
             else:
                 raise ValueError('Illegal variable name!')
             
@@ -91,7 +132,7 @@ class CompilationEngine(object):
         
         # Then token after the subroutine signature should be
         # the return type of the subroutine
-        if self._get_the_token_type() in self.PRIMITIVE_RETURN_TYPE or self._get_the_token_type() == 'identifier':
+        if (self._get_the_token() in self.PRIMITIVE_RETURN_TYPE) or (self._get_the_token_type() == 'identifier'):
             self._eat(self._get_the_token())
         
         else:
@@ -143,8 +184,9 @@ class CompilationEngine(object):
         self.compilation_result.append('<parameterList>')
         
         # Compile 0 or more comma separated parameters
-        while self.current_token != ')':
-            if self._get_the_token_type() in self.VAR_TYPE or self._get_the_token_type() == 'identifier':
+        while self._get_the_token() != ')':
+            print(self._get_the_token())
+            if self._get_the_token() in self.VAR_TYPE or self._get_the_token_type() == 'identifier':
                 self._eat(self._get_the_token())
             else:
                 raise ValueError('Illegal parameter type.')
@@ -393,3 +435,17 @@ class CompilationEngine(object):
         raw_token = raw_token.split()
 
         return raw_token[1]
+
+    def get_result(self):
+        """
+        Return the compiled result.
+        :return: List of strings of compiled tokens
+        """
+        self.compile_class()
+        return self.compilation_result
+
+
+if __name__ == '__main__':
+    import sys
+    file_name = sys.argv[1]
+    compile_file(file_name)
