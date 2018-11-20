@@ -9,6 +9,7 @@ class CompilationEngine(object):
     PRIMITIVE_RETURN_TYPE = ['int', 'char', 'boolean', 'void']
     STATEMENTS_TYPES = ['let', 'do', 'while', 'if', 'return']
     UNARY_OP = ['-', '~']
+    OPS = ['+', '-', '*', '/', '&', '|', '&lt', '&gt', '=']
     IF_STATEMENTS = ['if', 'else']
     TERM_TYPE = ['integerConstant', 'stringConstant', 'keywordConstant']
     KEYWORD_CONST = ['true', 'false', 'null', 'this']
@@ -74,7 +75,7 @@ class CompilationEngine(object):
             if self._get_the_token() == ',':
                 self._eat(',')
             elif self._get_the_token() != ';':
-                raise ValueError('Variable names must seperated by comma')
+                raise ValueError('Variable names must separated by comma')
         self._eat(';')
         
         self.compilation_result.append('</classVarDec>')
@@ -88,7 +89,7 @@ class CompilationEngine(object):
         self.compilation_result.append('<subroutineDec>')
         self._eat(self._get_the_token())
         
-        # Then token after the subroutine signiture should be
+        # Then token after the subroutine signature should be
         # the return type of the subroutine
         if self._get_the_token_type() in self.PRIMITIVE_RETURN_TYPE or self._get_the_token_type() == 'identifier':
             self._eat(self._get_the_token())
@@ -102,7 +103,7 @@ class CompilationEngine(object):
             raise ValueError('Illegal function name!')
         
         # Compile the subroutine's parameters
-        # and the paranthesis.
+        # and the parenthesis.
         self._eat('(')
         self.compile_parameter_list()
         self._eat(')')
@@ -137,11 +138,11 @@ class CompilationEngine(object):
 
     def compile_parameter_list(self):
         """
-        Comile a (list of) parameters.
+        Compile a (list of) parameters.
         """
         self.compilation_result.append('<parameterList>')
         
-        # Compile 0 or more comma seperated parameters
+        # Compile 0 or more comma separated parameters
         while self.current_token != ')':
             if self._get_the_token_type() in self.VAR_TYPE or self._get_the_token_type() == 'identifier':
                 self._eat(self._get_the_token())
@@ -293,8 +294,15 @@ class CompilationEngine(object):
         """
         Compile an expression.
         """
-        pass
-        
+        self.compilation_result.append('<expression>')
+        while self._get_the_token() != ';':
+            self.compile_term()
+            if self._get_the_token() in self.OPS:
+                self._eat(self._get_the_token())
+        self._eat(';')
+        self.compilation_result.append('</expression>')
+        return
+
     def compile_term(self):
         """
         Compile a term.
@@ -329,7 +337,7 @@ class CompilationEngine(object):
             self._eat(')')
 
         if the_token in self.UNARY_OP:
-            self.eat(the_token)
+            self._eat(the_token)
             self.compile_term()
 
         self.compilation_result.append('</term>')
