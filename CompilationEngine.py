@@ -84,7 +84,6 @@ class CompilationEngine(object):
         # Compile the class body recursively
         while self.num_tokens_left > 0:
             the_token = self._get_the_token()
-            print(the_token)
 
             if the_token in self.CLASS_VAR_TYPE:
                 self.compile_class_var_dec()
@@ -185,7 +184,6 @@ class CompilationEngine(object):
         
         # Compile 0 or more comma separated parameters
         while self._get_the_token() != ')':
-            print(self._get_the_token())
             if self._get_the_token() in self.VAR_TYPE or self._get_the_token_type() == 'identifier':
                 self._eat(self._get_the_token())
             else:
@@ -211,15 +209,17 @@ class CompilationEngine(object):
         """
         self._eat('var')
         
-        if self._get_the_token_type() in self.VAR_TYPE or self._get_the_token_type() == 'identifier':
+        if self._get_the_token() in self.VAR_TYPE or self._get_the_token_type() == 'identifier':
             self._eat(self._get_the_token())
         else:
             raise ValueError('Illegal variable type!')
-        
-        if self._get_the_token_type() != 'identifier':
-            raise ValueError('Illegal variable name!')
-        else:
-            self._eat(self._get_the_token())
+        while self._get_the_token() != ';':
+            if self._get_the_token_type() != 'identifier':
+                raise ValueError('Illegal variable name!')
+            else:
+                self._eat(self._get_the_token())
+            if self._get_the_token() == ',':
+                self._eat(',')
         
         self._eat(';')
         
@@ -257,6 +257,10 @@ class CompilationEngine(object):
         self._eat('do')
         
         self._eat(self._get_the_token())
+        if self._get_the_token() == '.':
+            self._eat('.')
+            self._eat(self._get_the_token())
+
         self._eat('(')
         self.compile_expression_list()
         self._eat(')')
@@ -271,7 +275,7 @@ class CompilationEngine(object):
         """
         self.compilation_result.append('<letStatement>')
         self._eat('let')
-        if self._get_the_token() == 'identifier':
+        if self._get_the_token_type() == 'identifier':
             self._eat(self._get_the_token())
 
         # May be an array element assignment
@@ -282,7 +286,7 @@ class CompilationEngine(object):
 
         self._eat('=')
         self.compile_expression()
-
+        self._eat(';')
         self.compilation_result.append('</letStatement>')
 
         return
@@ -310,6 +314,7 @@ class CompilationEngine(object):
         self.compilation_result.append('<returnStatement>')
         self._eat('return')
         self.compile_expression()
+        self._eat(';')
         self.compilation_result.append('</returnStatement>')
 
         return
@@ -337,11 +342,14 @@ class CompilationEngine(object):
         Compile an expression.
         """
         self.compilation_result.append('<expression>')
-        while self._get_the_token() != ';':
+        while (self._get_the_token_type() == 'identifier' or
+               self._get_the_token_type() in self.TERM_TYPE or
+               self._get_the_token() in self.KEYWORD_CONST or
+               self._get_the_token() in self.UNARY_OP):
+
             self.compile_term()
             if self._get_the_token() in self.OPS:
                 self._eat(self._get_the_token())
-        self._eat(';')
         self.compilation_result.append('</expression>')
         return
 
@@ -359,7 +367,7 @@ class CompilationEngine(object):
             self._eat(the_token)
 
         elif the_type == 'identifier':
-            self._eat(the_type)
+            self._eat(the_token)
 
             # May be addressing an array element
             if self._get_the_token() == '[':
@@ -369,6 +377,12 @@ class CompilationEngine(object):
 
             # May be a subroutine call
             elif self._get_the_token() == '(':
+                self._eat('(')
+                self.compile_expression_list()
+                self._eat(')')
+            elif self._get_the_token() == '.':
+                self._eat('.')
+                self._eat(self._get_the_token())
                 self._eat('(')
                 self.compile_expression_list()
                 self._eat(')')
@@ -406,6 +420,7 @@ class CompilationEngine(object):
         Raise Value Error if the given token does not match
         the current token.
         """
+        print(self._get_the_token())
         if self._get_the_token() != token:
             raise ValueError('No {0} to eat'.format(token))
 
