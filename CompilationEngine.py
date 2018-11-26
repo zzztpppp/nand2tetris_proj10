@@ -11,8 +11,8 @@ class CompilationEngine(object):
     UNARY_OP = ['-', '~']
     OPS = ['+', '-', '*', '/', '&', '|', '&lt', '&gt', '=']
     IF_STATEMENTS = ['if', 'else']
-    TERM_TYPE = ['integerConstant', 'stringConstant', 'keywordConstant']
     KEYWORD_CONST = ['true', 'false', 'null', 'this']
+    TERM_TYPE = ['integerConstant', 'identifier'] + UNARY_OP + KEYWORD_CONST
 
     def __init__(self, input_tokens):
         """
@@ -295,11 +295,10 @@ class CompilationEngine(object):
         Compile an expression.
         """
         self.compilation_result.append('<expression>')
-        while self._get_the_token() != ';':
+        while self._get_the_token_type() in self.TERM_TYPE:
             self.compile_term()
             if self._get_the_token() in self.OPS:
                 self._eat(self._get_the_token())
-        self._eat(';')
         self.compilation_result.append('</expression>')
         return
 
@@ -393,3 +392,4 @@ class CompilationEngine(object):
         raw_token = raw_token.split()
 
         return raw_token[1]
+
