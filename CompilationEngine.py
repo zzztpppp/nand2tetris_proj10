@@ -1,5 +1,7 @@
 # This is the jack language compilation engine
 
+import re
+
 
 def compile_file(file):
     """
@@ -41,7 +43,7 @@ def _compile_file(file_path):
 
 
 class CompilationEngine(object):
-    
+
     SUBROUTINE_TYPE = ['function', 'method', 'constructor']
     CLASS_VAR_TYPE = ['static', 'field']
     VAR_TYPE = ['int', 'char', 'boolean']
@@ -52,6 +54,7 @@ class CompilationEngine(object):
     IF_STATEMENTS = ['if', 'else']
     TERM_TYPE = ['integerConstant', 'stringConstant', 'keywordConstant']
     KEYWORD_CONST = ['true', 'false', 'null', 'this']
+    _TAG_CLEANER = re.compile('<.*?>')
 
     def __init__(self, input_tokens):
         """
@@ -229,7 +232,6 @@ class CompilationEngine(object):
         """
         Compile a sequence of statements, not including the enclosing curly brackets.
         """
-        returned = False
         while self._get_the_token() in self.STATEMENTS_TYPES:
             the_token = self._get_the_token()
             if the_token == 'do':
@@ -241,11 +243,7 @@ class CompilationEngine(object):
             if the_token == 'if':
                 self.compile_if()
             if the_token == 'return':
-                returned = True
                 self.compile_return()
-                
-        if not returned:
-            raise ValueError('No return statement!')
             
         return
         
@@ -326,11 +324,14 @@ class CompilationEngine(object):
         self.compilation_result.append('<ifStatement>')
         for clause in self.IF_STATEMENTS:
             if self._get_the_token() == clause:
-
                 self._eat(self._get_the_token())
-                self._eat('(')
-                self.compile_expression()
-                self._eat(')')
+
+                # 'if' clause has expression conditions
+                if clause == 'if':
+                    self._eat('(')
+                    self.compile_expression()
+                    self._eat(')')
+
                 self._eat('{')
                 self.compile_statements()
                 self._eat('}')
@@ -415,7 +416,7 @@ class CompilationEngine(object):
         """
         :param token: String
                       The token to advance over.
-        Ouput the given token and advance the token list.
+        Output the given token and advance the token list.
 
         Raise Value Error if the given token does not match
         the current token.
@@ -447,9 +448,9 @@ class CompilationEngine(object):
         :return: The token with tag stripped.
         """
         raw_token = self.token_list[self.current_token]
-        raw_token = raw_token.split()
+        raw_token = re.sub(self._TAG_CLEANER, '', raw_token)
 
-        return raw_token[1]
+        return raw_token.strip()
 
     def get_result(self):
         """
