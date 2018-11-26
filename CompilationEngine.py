@@ -1,6 +1,45 @@
 # This is the jack language compilation engine
 
 
+def compile_file(file):
+    """
+    Compile a given file or a whole directory.
+    :param : string
+                 A file name or directory name.
+    :return:
+    """
+    import os
+    if os.path.isdir(file):
+        for name in os.listdir(file):
+            file_path = os.path.join(file, name)
+            compile_file(file_path)
+    else:
+        _compile_file(file)
+
+    return
+
+
+def _compile_file(file_path):
+    """
+    Compile a single file
+    :param file_path: string
+    :return:
+    """
+    if not file_path.endswith('.xml'):
+        return
+
+    with open(file_path) as f:
+        tokens = f.readlines()
+        # Ignore the '<tokens>' signature
+        compiler = CompilationEngine(tokens[1:-1])
+        result = compiler.get_result()
+
+    # Write the result into .xml file
+    with open(file_path[0:file_path.find('.') - 1] + '.xml', 'w') as output:
+        output.writelines(result)
+    return
+
+
 class CompilationEngine(object):
     
     SUBROUTINE_TYPE = ['function', 'method', 'constructor']
@@ -45,6 +84,7 @@ class CompilationEngine(object):
         # Compile the class body recursively
         while self.num_tokens_left > 0:
             the_token = self._get_the_token()
+
             if the_token in self.CLASS_VAR_TYPE:
                 self.compile_class_var_dec()
 
@@ -68,7 +108,7 @@ class CompilationEngine(object):
         # Compile the variable(s) declared.
         while self._get_the_token() != ';':
             if self._get_the_token_type() == 'identifier':
-                self._eat(self._get_the_token)
+                self._eat(self._get_the_token())
             else:
                 raise ValueError('Illegal variable name!')
             
@@ -91,7 +131,7 @@ class CompilationEngine(object):
         
         # Then token after the subroutine signature should be
         # the return type of the subroutine
-        if self._get_the_token_type() in self.PRIMITIVE_RETURN_TYPE or self._get_the_token_type() == 'identifier':
+        if (self._get_the_token() in self.PRIMITIVE_RETURN_TYPE) or (self._get_the_token_type() == 'identifier'):
             self._eat(self._get_the_token())
         
         else:
@@ -143,8 +183,8 @@ class CompilationEngine(object):
         self.compilation_result.append('<parameterList>')
         
         # Compile 0 or more comma separated parameters
-        while self.current_token != ')':
-            if self._get_the_token_type() in self.VAR_TYPE or self._get_the_token_type() == 'identifier':
+        while self._get_the_token() != ')':
+            if self._get_the_token() in self.VAR_TYPE or self._get_the_token_type() == 'identifier':
                 self._eat(self._get_the_token())
             else:
                 raise ValueError('Illegal parameter type.')
@@ -169,15 +209,17 @@ class CompilationEngine(object):
         """
         self._eat('var')
         
-        if self._get_the_token_type() in self.VAR_TYPE or self._get_the_token_type() == 'identifier':
+        if self._get_the_token() in self.VAR_TYPE or self._get_the_token_type() == 'identifier':
             self._eat(self._get_the_token())
         else:
             raise ValueError('Illegal variable type!')
-        
-        if self._get_the_token_type() != 'identifier':
-            raise ValueError('Illegal variable name!')
-        else:
-            self._eat(self._get_the_token())
+        while self._get_the_token() != ';':
+            if self._get_the_token_type() != 'identifier':
+                raise ValueError('Illegal variable name!')
+            else:
+                self._eat(self._get_the_token())
+            if self._get_the_token() == ',':
+                self._eat(',')
         
         self._eat(';')
         
@@ -215,6 +257,10 @@ class CompilationEngine(object):
         self._eat('do')
         
         self._eat(self._get_the_token())
+        if self._get_the_token() == '.':
+            self._eat('.')
+            self._eat(self._get_the_token())
+
         self._eat('(')
         self.compile_expression_list()
         self._eat(')')
@@ -229,7 +275,7 @@ class CompilationEngine(object):
         """
         self.compilation_result.append('<letStatement>')
         self._eat('let')
-        if self._get_the_token() == 'identifier':
+        if self._get_the_token_type() == 'identifier':
             self._eat(self._get_the_token())
 
         # May be an array element assignment
@@ -240,7 +286,7 @@ class CompilationEngine(object):
 
         self._eat('=')
         self.compile_expression()
-
+        self._eat(';')
         self.compilation_result.append('</letStatement>')
 
         return
@@ -268,6 +314,7 @@ class CompilationEngine(object):
         self.compilation_result.append('<returnStatement>')
         self._eat('return')
         self.compile_expression()
+        self._eat(';')
         self.compilation_result.append('</returnStatement>')
 
         return
@@ -295,7 +342,11 @@ class CompilationEngine(object):
         Compile an expression.
         """
         self.compilation_result.append('<expression>')
-        while self._get_the_token_type() in self.TERM_TYPE:
+        while (self._get_the_token_type() == 'identifier' or
+               self._get_the_token_type() in self.TERM_TYPE or
+               self._get_the_token() in self.KEYWORD_CONST or
+               self._get_the_token() in self.UNARY_OP):
+
             self.compile_term()
             if self._get_the_token() in self.OPS:
                 self._eat(self._get_the_token())
@@ -316,7 +367,7 @@ class CompilationEngine(object):
             self._eat(the_token)
 
         elif the_type == 'identifier':
-            self._eat(the_type)
+            self._eat(the_token)
 
             # May be addressing an array element
             if self._get_the_token() == '[':
@@ -326,6 +377,12 @@ class CompilationEngine(object):
 
             # May be a subroutine call
             elif self._get_the_token() == '(':
+                self._eat('(')
+                self.compile_expression_list()
+                self._eat(')')
+            elif self._get_the_token() == '.':
+                self._eat('.')
+                self._eat(self._get_the_token())
                 self._eat('(')
                 self.compile_expression_list()
                 self._eat(')')
@@ -363,6 +420,7 @@ class CompilationEngine(object):
         Raise Value Error if the given token does not match
         the current token.
         """
+        print(self._get_the_token())
         if self._get_the_token() != token:
             raise ValueError('No {0} to eat'.format(token))
 
@@ -393,3 +451,16 @@ class CompilationEngine(object):
 
         return raw_token[1]
 
+    def get_result(self):
+        """
+        Return the compiled result.
+        :return: List of strings of compiled tokens
+        """
+        self.compile_class()
+        return self.compilation_result
+
+
+if __name__ == '__main__':
+    import sys
+    file_name = sys.argv[1]
+    compile_file(file_name)
