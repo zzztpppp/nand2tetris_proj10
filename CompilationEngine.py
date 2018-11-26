@@ -52,8 +52,8 @@ class CompilationEngine(object):
     UNARY_OP = ['-', '~']
     OPS = ['+', '-', '*', '/', '&', '|', '&lt', '&gt', '=']
     IF_STATEMENTS = ['if', 'else']
-    TERM_TYPE = ['integerConstant', 'stringConstant', 'keywordConstant']
     KEYWORD_CONST = ['true', 'false', 'null', 'this']
+    TERM_TYPE = ['integerConstant', 'identifier'] + UNARY_OP + KEYWORD_CONST
     _TAG_CLEANER = re.compile('<.*?>')
 
     def __init__(self, input_tokens):
