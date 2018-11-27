@@ -342,10 +342,7 @@ class CompilationEngine(object):
         Compile an expression.
         """
         self.compilation_result.append('<expression>')
-        while (self._get_the_token_type() == 'identifier' or
-               self._get_the_token_type() in self.TERM_TYPE or
-               self._get_the_token() in self.KEYWORD_CONST or
-               self._get_the_token() in self.UNARY_OP):
+        while self._get_the_token_type() in self.TERM_TYPE:
 
             self.compile_term()
             if self._get_the_token() in self.OPS:
