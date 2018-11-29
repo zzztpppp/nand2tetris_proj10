@@ -200,7 +200,7 @@ class CompilationEngine(object):
             if self._get_the_token() == ',':
                 self._eat(',')
             elif self._get_the_token() != ')':
-                raise ValueError('Parameters must be seperated by comma!')
+                raise ValueError('Parameters must be separated by commas!')
         
         self.compilation_result.append('</parameterList>')
         
@@ -348,6 +348,9 @@ class CompilationEngine(object):
             self.compile_term()
             if self._get_the_token() in self.OPS:
                 self._eat(self._get_the_token())
+            else:
+                break
+
         self.compilation_result.append('</expression>')
         return
 
