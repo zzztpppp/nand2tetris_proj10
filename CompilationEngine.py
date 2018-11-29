@@ -53,7 +53,7 @@ class CompilationEngine(object):
     OPS = ['+', '-', '*', '/', '&', '|', '&lt', '&gt', '=']
     IF_STATEMENTS = ['if', 'else']
     KEYWORD_CONST = ['true', 'false', 'null', 'this']
-    TERM_TYPE = ['integerConstant', 'identifier'] + UNARY_OP + KEYWORD_CONST
+    TERM_TYPE = ['identifier', 'keyword', 'integerConstant', 'stringConstant']
     _TAG_CLEANER = re.compile('<.*?>')
 
     def __init__(self, input_tokens):
@@ -343,11 +343,8 @@ class CompilationEngine(object):
         Compile an expression.
         """
         self.compilation_result.append('<expression>')
-        while (self._get_the_token_type() == 'identifier' or
-               self._get_the_token_type() in self.TERM_TYPE or
-               self._get_the_token() in self.KEYWORD_CONST or
-               self._get_the_token() in self.UNARY_OP):
-
+        while self._get_the_token_type() in self.TERM_TYPE or \
+                self._get_the_token() == '(':
             self.compile_term()
             if self._get_the_token() in self.OPS:
                 self._eat(self._get_the_token())
@@ -361,13 +358,10 @@ class CompilationEngine(object):
         the_token = self._get_the_token()
         the_type = self._get_the_token_type()
         self.compilation_result.append('<term>')
-        if the_token in self.KEYWORD_CONST:
-            self._eat(the_token)
 
-        elif the_type in self.TERM_TYPE:
-            self._eat(the_token)
+        if (the_type in ['identifier', 'integerConstant', 'stringConstant'] or
+                the_token in self.KEYWORD_CONST):
 
-        elif the_type == 'identifier':
             self._eat(the_token)
 
             # May be addressing an array element
