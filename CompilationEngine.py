@@ -38,7 +38,8 @@ def _compile_file(file_path):
 
     # Write the result into .xml file
     with open(file_path[0:file_path.find('.') - 1] + '.xml', 'w') as output:
-        output.writelines(result)
+        result = '\n'.join(result)
+        output.write(result)
     return
 
 
@@ -50,7 +51,7 @@ class CompilationEngine(object):
     PRIMITIVE_RETURN_TYPE = ['int', 'char', 'boolean', 'void']
     STATEMENTS_TYPES = ['let', 'do', 'while', 'if', 'return']
     UNARY_OP = ['-', '~']
-    OPS = ['+', '-', '*', '/', '&', '|', '&lt', '&gt', '=']
+    OPS = ['+', '-', '*', '/', '&amp;', '|', '&lt;', '&gt;', '=']
     IF_STATEMENTS = ['if', 'else']
     KEYWORD_CONST = ['true', 'false', 'null', 'this']
     TERM_TYPE = ['identifier', 'keyword', 'integerConstant', 'stringConstant']
@@ -85,7 +86,7 @@ class CompilationEngine(object):
         self._eat('{')
 
         # Compile the class body recursively
-        while self.num_tokens_left > 0:
+        while True:
             the_token = self._get_the_token()
 
             if the_token in self.CLASS_VAR_TYPE:
@@ -93,6 +94,11 @@ class CompilationEngine(object):
 
             elif the_token in self.SUBROUTINE_TYPE:
                 self.compile_subroutine_dec()
+
+            else:
+                break
+        self._eat('}')
+        self.compilation_result.append('</class>')
 
         return self.compilation_result
 
@@ -166,16 +172,20 @@ class CompilationEngine(object):
         """
         self.compilation_result.append('<subroutineBody>')
         self._eat('{')
-        
+
+        # Variable declaration in a function.
+
         while self._get_the_token() == 'var':
+            self.compilation_result.append('<varDec>')
             self.compile_var_dec()
+            self.compilation_result.append('</varDec>')
         
         if self._get_the_token() not in self.STATEMENTS_TYPES:
             raise ValueError('There is no statement in this subroutine!')
         self.compile_statements()
         
         self._eat('}')
-        self.compilation_result.append('/subroutineBody')
+        self.compilation_result.append('</subroutineBody>')
         
         return
 
@@ -232,6 +242,7 @@ class CompilationEngine(object):
         """
         Compile a sequence of statements, not including the enclosing curly brackets.
         """
+        self.compilation_result.append('<statements>')
         while self._get_the_token() in self.STATEMENTS_TYPES:
             the_token = self._get_the_token()
             if the_token == 'do':
@@ -244,6 +255,7 @@ class CompilationEngine(object):
                 self.compile_if()
             if the_token == 'return':
                 self.compile_return()
+        self.compilation_result.append('</statements>')
             
         return
         
@@ -311,7 +323,9 @@ class CompilationEngine(object):
         """
         self.compilation_result.append('<returnStatement>')
         self._eat('return')
-        self.compile_expression()
+        if self._get_the_token() != ';':
+            self.compile_expression()
+
         self._eat(';')
         self.compilation_result.append('</returnStatement>')
 
@@ -343,8 +357,7 @@ class CompilationEngine(object):
         Compile an expression.
         """
         self.compilation_result.append('<expression>')
-        while self._get_the_token_type() in self.TERM_TYPE or \
-                self._get_the_token() == '(':
+        while True:
             self.compile_term()
             if self._get_the_token() in self.OPS:
                 self._eat(self._get_the_token())
@@ -405,7 +418,8 @@ class CompilationEngine(object):
         self.compilation_result.append('<expressionList>')
         while self._get_the_token() != ')':
             self.compile_expression()
-            self._eat(',')
+            if self._get_the_token() == ',':
+                self._eat(',')
         self.compilation_result.append('</expressionList>')
         return
         
@@ -423,7 +437,7 @@ class CompilationEngine(object):
             raise ValueError('No {0} to eat'.format(token))
 
         raw_token = self.token_list[self.current_token]
-        self.compilation_result.append(raw_token)
+        self.compilation_result.append(raw_token.strip('\n'))
         self.current_token += 1
         self.num_tokens_left -= 1
         return
