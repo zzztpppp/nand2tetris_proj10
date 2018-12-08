@@ -53,7 +53,7 @@ class VMWriter(object):
         :param label: String. The label name.
         :return:
         """
-        code = '{label}'.format(label=label)
+        code = '{label}\n'.format(label=label)
         self.vm_file.write(code)
 
         return
@@ -61,19 +61,25 @@ class VMWriter(object):
     def write_goto(self, label):
         """
         Write a VM goto command
-        :param lable: String. The label name.
+        :param label: String. The label name.
         :return:
         """
 
+        code = 'goto {label}\n'.format(label=label)
+        self.vm_file.write(code)
 
+        return
 
-    def write_if(self):
+    def write_if(self, label):
         """
-        Write a VM if-go command.
+        Write a VM if-goto command.
         :return:
         """
 
-        pass
+        code = 'if-goto {label}\n'.format(label=label)
+        self.vm_file.write(code)
+
+        return
 
     def write_call(self, name, n_args):
         """
@@ -84,7 +90,10 @@ class VMWriter(object):
         :return:
         """
 
-        pass
+        code = 'call {func_name} {n_args}\n'.format(func_name=name, n_args=n_args)
+        self.vm_file.write(code)
+
+        return
 
     def write_function(self, name, n_locals):
         """
@@ -94,7 +103,10 @@ class VMWriter(object):
         :return:
         """
 
-        pass
+        code = 'function {func_name} {n_locals}\n'.format(func_name=name, n_locals=n_locals)
+        self.vm_file.write(code)
+
+        return
 
     def write_return(self):
         """
@@ -102,7 +114,10 @@ class VMWriter(object):
         :return:
         """
 
-        pass
+        code = 'return'
+        self.vm_file.write(code)
+
+        return
 
     def close(self):
         """
@@ -110,4 +125,7 @@ class VMWriter(object):
         :return:
         """
 
-        pass
+        self.vm_file.close()
+
+        return
+
