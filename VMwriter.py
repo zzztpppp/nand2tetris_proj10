@@ -16,7 +16,10 @@ class VMWriter(object):
         :return:
         """
 
-        pass
+        code = 'push {segment} {index}\n'.format(segment=segment, index=index)
+        self.vm_file.write(code)
+
+        return
 
     def write_pop(self, segment, index):
         """
@@ -27,7 +30,10 @@ class VMWriter(object):
         :return:
         """
 
-        pass
+        code = 'pop {segment} {index}\n'.format(segment=segment, index=index)
+        self.vm_file.write(code)
+
+        return
 
     def write_arithmetic(self, command):
         """
@@ -35,7 +41,10 @@ class VMWriter(object):
         :return:
         """
 
-        pass
+        code = '{command}\n'.format(command=command)
+        self.vm_file.write(code)
+
+        return
 
     def write_label(self, label):
         """
@@ -44,16 +53,19 @@ class VMWriter(object):
         :param label: String. The label name.
         :return:
         """
+        code = '{label}'.format(label=label)
+        self.vm_file.write(code)
 
-        pass
+        return
 
-    def write_goto(self):
+    def write_goto(self, label):
         """
         Write a VM goto command
+        :param lable: String. The label name.
         :return:
         """
 
-        pass
+
 
     def write_if(self):
         """

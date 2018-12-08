@@ -68,7 +68,7 @@ class SymbolTable(object):
 
     def kind_of(self, name):
         """
-        Return the variable's category, given the variable's name.
+        Return the variable's category, given its name.
 
         :param name: String. Variable's name.
         :return: String. The category.
@@ -79,7 +79,7 @@ class SymbolTable(object):
 
     def type_of(self, name):
         """
-        Return the variable's type, given the variable's name.
+        Return the variable's type, given the its name.
 
         :param name: String. Variable's name.
         :return: String. The type
@@ -112,3 +112,8 @@ class SymbolTable(object):
             info = self._method_table.get(name)
 
         return info
+
+if __name__ == '__main__':
+    t = SymbolTable()
+    t.define('a', 'int', 'STATIC')
+    print(t.index_of('a'), t.kind_of('a'), t.type_of('a'))
