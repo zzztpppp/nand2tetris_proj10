@@ -1,5 +1,6 @@
 # A jack language tokenizer
 
+
 class Tokenizer(object):
     
     SYMBOLS = ['{', '}', '[', ']', '(', ')', '.', ',', ';', '+', 
@@ -9,6 +10,7 @@ class Tokenizer(object):
                 'false', 'null', 'this', 'let', 'do', 'if', 'else', 'while', 
                 'return']
     INTEGERS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0']
+
 
     @staticmethod
     def tokenize(file_name):
@@ -98,7 +100,8 @@ class Tokenizer(object):
             
             else:
                 current_token += c
-            
+
+
 def tokenize(file_name):
     import os
     if os.path.isdir(file_name):
@@ -107,6 +110,8 @@ def tokenize(file_name):
             tokenize(path)
     if os.path.isfile(file_name) and file_name.endswith('.jack'):
         Tokenizer.tokenize(file_name)
+
+
 if __name__ == '__main__':
     import sys
     file_name = sys.argv[1]

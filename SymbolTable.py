@@ -113,7 +113,18 @@ class SymbolTable(object):
 
         return info
 
+    def drop_method_table(self):
+        """
+        Drop the method level sub-table
+        :return:
+        """
+
+        self._method_table = dict()
+
+        return
+
+
 if __name__ == '__main__':
-    t = SymbolTable()
-    t.define('a', 'int', 'STATIC')
-    print(t.index_of('a'), t.kind_of('a'), t.type_of('a'))
+    table_test = SymbolTable()
+    table_test.define('a', 'int', 'STATIC')
+    print(table_test.index_of('a'), table_test.kind_of('a'), table_test.type_of('a'))

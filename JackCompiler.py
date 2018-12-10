@@ -1,0 +1,3 @@
+
+class JackCompiler(object):
+    pass
