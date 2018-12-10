@@ -1,7 +1,7 @@
 # This is the jack language compilation engine
 
 import re
-
+from SymbolTable import SymbolTable
 
 def compile_file(file):
     """
@@ -66,7 +66,8 @@ class CompilationEngine(object):
         self.num_tokens_left = len(input_tokens)
         self.current_token = 0
         self.compilation_result = []
-    
+        self.symbol_table = SymbolTable()
+
     def compile_class(self):
         """
         Compile a whole class. This method will be invoked
@@ -106,10 +107,19 @@ class CompilationEngine(object):
         """
         Compile a static or field variable declaration
         """
+
+        # Collect types and kinds for defining the tokens into symbol table
+        var_kind = None
+        var_type = None
+        var_name = None
+
         # Compile the head of class variable declaration.
         self.compilation_result.append('<classVarDec>')
+
+        var_kind = self._get_the_token()
         self._eat(self._get_the_token())
         if self._get_the_token_type() == 'identifier' or self._get_the_token() in self.VAR_TYPE:
+            var_type = self._get_the_token()
             self._eat(self._get_the_token())
         else:
             raise ValueError('Variable type should be specified')
@@ -117,7 +127,12 @@ class CompilationEngine(object):
         # Compile the variable(s) declared.
         while self._get_the_token() != ';':
             if self._get_the_token_type() == 'identifier':
+                var_name = self._get_the_token()
                 self._eat(self._get_the_token())
+
+                # Define it in symbol table
+                self.symbol_table.define(var_name, var_type, var_kind)
+
             else:
                 raise ValueError('Illegal variable name!')
             
@@ -128,7 +143,7 @@ class CompilationEngine(object):
         self._eat(';')
         
         self.compilation_result.append('</classVarDec>')
-        
+
         return
         
     def compile_subroutine_dec(self):
@@ -435,6 +450,8 @@ class CompilationEngine(object):
         print(self._get_the_token())
         if self._get_the_token() != token:
             raise ValueError('No {0} to eat'.format(token))
+
+        # If the token is the identifier
 
         raw_token = self.token_list[self.current_token]
         self.compilation_result.append(raw_token.strip('\n'))
