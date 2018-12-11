@@ -3,7 +3,7 @@
 
 class SymbolTable(object):
 
-    _CLASS_KIND = ['STATIC', 'FIELD']
+    _CLASS_KIND = ['static', 'field']
     _METHOD_KIND = ['ARG', 'VAR']
 
     # Indices of each property
@@ -122,6 +122,13 @@ class SymbolTable(object):
         self._method_table = dict()
 
         return
+
+    def isin(self, name):
+
+        if self.info_of(name) is not None:
+            return True
+
+        return False
 
 
 if __name__ == '__main__':

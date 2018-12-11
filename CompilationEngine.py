@@ -150,6 +150,10 @@ class CompilationEngine(object):
         """
         Compile a method/function/constructor declaration in a class.
         """
+
+        # Rebuild a new sub-table for this method
+        self.symbol_table.drop_method_table()
+
         self.compilation_result.append('<subroutineDec>')
         self._eat(self._get_the_token())
         
@@ -212,12 +216,17 @@ class CompilationEngine(object):
         
         # Compile 0 or more comma separated parameters
         while self._get_the_token() != ')':
+            var_kind = 'ARG'
+            var_type = None
+            var_name = None
             if self._get_the_token() in self.VAR_TYPE or self._get_the_token_type() == 'identifier':
+                var_type = self._get_the_token()
                 self._eat(self._get_the_token())
             else:
                 raise ValueError('Illegal parameter type.')
 
             if self._get_the_token_type() == 'identifier':
+                var_name = self._get_the_token()
                 self._eat(self._get_the_token())
             else:
                 raise ValueError('Illegal parameter name!')
@@ -226,6 +235,8 @@ class CompilationEngine(object):
                 self._eat(',')
             elif self._get_the_token() != ')':
                 raise ValueError('Parameters must be separated by commas!')
+
+            self.symbol_table.define(var_name, var_type, var_kind)
         
         self.compilation_result.append('</parameterList>')
         
@@ -235,9 +246,14 @@ class CompilationEngine(object):
         """
         Compile the variable declaration in a method/function.
         """
+
+        var_kind = 'VAR'
+        var_type = None
+        var_name = None
         self._eat('var')
         
         if self._get_the_token() in self.VAR_TYPE or self._get_the_token_type() == 'identifier':
+            var_type = self._get_the_token()
             self._eat(self._get_the_token())
         else:
             raise ValueError('Illegal variable type!')
@@ -245,6 +261,8 @@ class CompilationEngine(object):
             if self._get_the_token_type() != 'identifier':
                 raise ValueError('Illegal variable name!')
             else:
+                var_name = self._get_the_token()
+                self.symbol_table.define(var_name, var_type, var_kind)
                 self._eat(self._get_the_token())
             if self._get_the_token() == ',':
                 self._eat(',')
@@ -452,9 +470,15 @@ class CompilationEngine(object):
             raise ValueError('No {0} to eat'.format(token))
 
         # If the token is the identifier
-
-        raw_token = self.token_list[self.current_token]
-        self.compilation_result.append(raw_token.strip('\n'))
+        if self.symbol_table.isin(token):
+            the_kind = self.symbol_table.kind_of(token)
+            the_type = self.symbol_table.type_of(token)
+            the_index = self.symbol_table.index_of(token)
+            tag = the_kind + ' ' + the_type + ' ' + str(the_index)
+            self.compilation_result.append('<{tag}> {token} </{tag}>'.format(tag=tag, token=token))
+        else:
+                raw_token = self.token_list[self.current_token]
+                self.compilation_result.append(raw_token.strip('\n'))
         self.current_token += 1
         self.num_tokens_left -= 1
         return
