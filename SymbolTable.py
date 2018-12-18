@@ -106,10 +106,10 @@ class SymbolTable(object):
         :return: List. Contains type, kind, index.
         """
 
-        info = self._class_table.get(name)
+        info = self._method_table.get(name)
 
         if info is None:
-            info = self._method_table.get(name)
+            info = self._class_table.get(name)
 
         return info
 
