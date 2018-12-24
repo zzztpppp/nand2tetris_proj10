@@ -17,7 +17,25 @@ class JackCompiler(object):
         pass
 
     def write_subroutine_dec(self):
-        pass
+        for _ in range(3):
+            self._advance()
+
+        # Get the function name
+        func_name = self._get_the_token()
+        func_name = self.class_name + '.' + func_name
+
+        # Get the number of arguments
+        num_args = 0
+        while True:
+            if self._get_the_tag() == self.SYMBOL:
+                num_args += 1
+                self._advance()
+            elif self._get_the_tag() == self.PARAM_LIST:
+                break
+
+        self.writer.write_function(func_name, num_args)
+
+        return
 
     def write_subroutine_body(self):
         pass
@@ -44,7 +62,7 @@ class JackCompiler(object):
         pass
 
     def write_expression(self):
-
+        pass
 
     def write_term(self):
         pass
@@ -53,5 +71,12 @@ class JackCompiler(object):
         pass
 
     def _advance(self):
+        pass
+
+    def _get_the_token(self):
+        pass
+
+    def _get_the_tag(self):
+        pass
 
 
