@@ -53,5 +53,10 @@ class JackCompiler(object):
         pass
 
     def _advance(self):
+        """
+        Return current code and move forward.
+        :return:
+        """
 
+        pass
 
