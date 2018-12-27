@@ -39,7 +39,19 @@ class JackCompiler(object):
         return
 
     def write_subroutine_body(self):
-        pass
+        """
+        Write the VM code of a subroutine
+        body.
+        :return:
+        """
+
+        # Ignore the variable declaration.
+        while self._get_the_tag() != self.STATEMETNS_START:
+            self._advance()
+
+        self.write_statements()
+
+        return
 
     def write_parameter_list(self):
         pass
