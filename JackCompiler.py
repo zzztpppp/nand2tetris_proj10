@@ -24,15 +24,16 @@ class JackCompiler(object):
         func_name = self._get_the_token()
         func_name = self.class_name + '.' + func_name
 
-        # Get the number of arguments
+        # Get the number of arguments, by counting the
+        # number of commas appeared in the parameters
         num_args = 0
         while True:
             if self._get_the_tag() == self.SYMBOL:
                 num_args += 1
                 self._advance()
-            elif self._get_the_tag() == self.PARAM_LIST:
+            elif self._get_the_tag() == self.PARAM_LIST_END:
                 break
-
+        num_args += 1
         self.writer.write_function(func_name, num_args)
 
         return
