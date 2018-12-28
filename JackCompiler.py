@@ -1,10 +1,14 @@
 
 from VMwriter import VMWriter
+from SymbolTable import SymbolTable
+
 
 class JackCompiler(object):
     """
     Compile a jack class from token codes.
     """
+
+    VARIABLES = [SymbolTable._CLASS_KIND, SymbolTable._METHOD_KIND]
 
     def __init__(self, parsed_codes, class_name):
 
@@ -62,7 +66,26 @@ class JackCompiler(object):
         pass
 
     def write_return(self):
-        pass
+        """
+        Genearate and write the
+        return statement.
+
+        :return:
+        """
+
+        value_returned = False
+        while self._get_the_tag() != self.RETURN_END:
+            self._advance()
+            if self._get_the_tag() == self.EXPRESSION_START:
+                self.write_expression()
+                value_returned = True
+
+        if not value_returned:
+            self.writer.write_push('constant', 1)
+
+        self.writer.write_return()
+
+        return
 
     def write_while(self):
         pass
@@ -89,6 +112,10 @@ class JackCompiler(object):
         pass
 
     def _get_the_tag(self):
+        pass
+
+    def _parse_variable_tag(self):
+
         pass
 
 
