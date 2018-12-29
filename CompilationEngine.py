@@ -108,10 +108,7 @@ class CompilationEngine(object):
         Compile a static or field variable declaration
         """
 
-        # Collect types and kinds for defining the tokens into symbol table
-        var_kind = None
-        var_type = None
-        var_name = None
+
 
         # Compile the head of class variable declaration.
         self.compilation_result.append('<classVarDec>')
