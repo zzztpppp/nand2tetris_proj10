@@ -12,6 +12,7 @@ class JackCompiler(object):
         self.progress = 0
         self.class_name = class_name
         self.writer = VMWriter(class_name + '.vm')
+        self.functions = dict()
 
     def write_class(self):
         pass
@@ -22,7 +23,7 @@ class JackCompiler(object):
 
         # Get the function name
         func_name = self._get_the_token()
-        func_name = self.class_name + '.' + func_name
+        func_name = '.'.joint([func_name, self.class_name])
 
         # Get the number of arguments, by counting the
         # number of commas appeared in the parameters
@@ -57,10 +58,35 @@ class JackCompiler(object):
         pass
 
     def write_statements(self):
-        pass
+        # Advance over the statements wrapper.
+        self._advance()
+
+        # Write the 5 types of statements
+        while self._get_the_tag() in self.STATEMENTS_START:
+
+            the_tag = self._get_the_tag()
+            if the_tag == self.DO_START:
+                self.write_do()
+            if the_tag == self.IF_START:
+                self.write_if()
+            if the_tag == self.LET_START:
+                self.write_let()
+            if the_tag == self.RETURN_START:
+                self.write_return()
+            if the_tag == self.WHILE_START:
+                self.write_while()
+
+        return
 
     def write_do(self):
-        pass
+        # Advance over the do statement wrapper
+        while self._get_the_tag() != self.DO_START:
+            self._advance()
+
+        func_name = self._get_the_token()
+        func_name = '.'.join([func_name, self.class_name])
+
+
 
     def write_return(self):
         pass
