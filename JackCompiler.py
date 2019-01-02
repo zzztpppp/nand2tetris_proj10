@@ -94,7 +94,16 @@ class JackCompiler(object):
         pass
 
     def write_let(self):
-        pass
+        """
+        Generate VM code for let statement.
+        :return:
+        """
+
+        # Advance over head.
+        while self._get_the_tag() != self.IDENTIFIER or self._get_the_tag() != self.VARIABLES:
+            self._advance()
+
+
 
     def write_expression(self):
         pass
