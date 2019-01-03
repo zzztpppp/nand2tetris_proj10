@@ -97,12 +97,42 @@ class JackCompiler(object):
         """
         Generate VM code for let statement.
         :return:
+
         """
 
         # Advance over head.
         while self._get_the_tag() != self.IDENTIFIER or self._get_the_tag() != self.VARIABLES:
             self._advance()
 
+        tag = self._strip_var()
+        var_type = tag[0]
+        index = tag[2]
+        self._advance()
+
+        array_assignment = False
+        while self._get_the_token() != '=':
+            self._advance()
+            if self._get_the_token() == '[':
+                array_assignment = True
+                self._advance()
+                self.write_expression()
+
+        # Write the vm code for assignee
+        self.write_expression()
+
+        # Assign values to the assigner
+        # TODO: Convert var_type to segment.
+        if array_assignment:
+            self.writer.write_pop('temp', 0)
+            self.writer.write_push(var_type, index)
+            self.writer.write_arithmetic('add')
+            self.writer.write_pop('pointer', 1)
+            self.writer.write_push('temp', 0)
+            self.writer.write_pop('that', 0)
+        else:
+            self.writer.write_pop(var_type, index)
+
+        return
 
 
     def write_expression(self):
@@ -125,6 +155,9 @@ class JackCompiler(object):
 
     def _parse_variable_tag(self):
 
+        pass
+
+    def _strip_var(self):
         pass
 
 
