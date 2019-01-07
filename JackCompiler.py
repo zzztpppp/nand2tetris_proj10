@@ -1,4 +1,6 @@
 
+import re
+
 from VMwriter import VMWriter
 from SymbolTable import SymbolTable
 
@@ -9,6 +11,7 @@ class JackCompiler(object):
     """
 
     VARIABLES = [SymbolTable._CLASS_KIND, SymbolTable._METHOD_KIND]
+    TAG_FINDER =  re.compile('<.*?>')
 
     def __init__(self, parsed_codes, class_name):
 
@@ -175,10 +178,13 @@ class JackCompiler(object):
         pass
 
     def _get_the_token(self):
-        pass
+        current_line = self.parsed_codes[self.progress]
+        return re.sub(self.TAG_FINDER,'' , current_line)
 
     def _get_the_tag(self):
-        pass
+
+        current_line = self.parsed_codes[self.progress]
+        return re.match(self.TAG_FINDER, current_line)
 
     def _parse_variable_tag(self):
 
