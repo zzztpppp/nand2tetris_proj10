@@ -1,4 +1,6 @@
 
+import re
+
 from VMwriter import VMWriter
 from SymbolTable import SymbolTable
 
@@ -12,6 +14,7 @@ class JackCompiler(object):
     VARIABLES = [SymbolTable._CLASS_KIND, SymbolTable._METHOD_KIND]
     OPS_MAP = {'+': 'add', '-': 'sub', '&amp': 'and', '|': 'or', '&lt': 'lt', '&gt': 'gt', '=': 'eq'}
     CONSTANTS = ['integerConstant', 'stringConstant', 'keywordConstant']
+    TAG_FINDER =  re.compile('<.*?>')
 
     def __init__(self, parsed_codes, class_name):
 
@@ -29,17 +32,18 @@ class JackCompiler(object):
 
         # Get the function name
         func_name = self._get_the_token()
-        func_name = self.class_name + '.' + func_name
+        func_name = '.'.joint([func_name, self.class_name])
 
-        # Get the number of arguments
+        # Get the number of arguments, by counting the
+        # number of commas appeared in the parameters
         num_args = 0
         while True:
             if self._get_the_tag() == self.SYMBOL:
                 num_args += 1
                 self._advance()
-            elif self._get_the_tag() == self.PARAM_LIST:
+            elif self._get_the_tag() == self.PARAM_LIST_END:
                 break
-
+        num_args += 1
         self.writer.write_function(func_name, num_args)
 
         return
@@ -63,10 +67,35 @@ class JackCompiler(object):
         pass
 
     def write_statements(self):
-        pass
+        # Advance over the statements wrapper.
+        self._advance()
+
+        # Write the 5 types of statements
+        while self._get_the_tag() in self.STATEMENTS_START:
+
+            the_tag = self._get_the_tag()
+            if the_tag == self.DO_START:
+                self.write_do()
+            if the_tag == self.IF_START:
+                self.write_if()
+            if the_tag == self.LET_START:
+                self.write_let()
+            if the_tag == self.RETURN_START:
+                self.write_return()
+            if the_tag == self.WHILE_START:
+                self.write_while()
+
+        return
 
     def write_do(self):
-        pass
+        # Advance over the do statement wrapper
+        while self._get_the_tag() != self.DO_START:
+            self._advance()
+
+        func_name = self._get_the_token()
+        func_name = '.'.join([func_name, self.class_name])
+
+
 
     def write_return(self):
         """
@@ -181,7 +210,7 @@ class JackCompiler(object):
         elif self._get_the_tag() == self.IDENTIFIER:
             the_token = self._get_the_token()
             self._advance('.')
-            
+
 
     def write_expression_list(self):
         pass
@@ -190,10 +219,13 @@ class JackCompiler(object):
         pass
 
     def _get_the_token(self):
-        pass
+        current_line = self.parsed_codes[self.progress]
+        return re.sub(self.TAG_FINDER,'' , current_line)
 
     def _get_the_tag(self):
-        pass
+
+        current_line = self.parsed_codes[self.progress]
+        return re.match(self.TAG_FINDER, current_line)
 
     def _parse_variable_tag(self):
 
