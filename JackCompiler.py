@@ -14,7 +14,7 @@ class JackCompiler(object):
     VARIABLES = [SymbolTable._CLASS_KIND, SymbolTable._METHOD_KIND]
     OPS_MAP = {'+': 'add', '-': 'sub', '&amp': 'and', '|': 'or', '&lt': 'lt', '&gt': 'gt', '=': 'eq'}
     CONSTANTS = ['integerConstant', 'stringConstant', 'keywordConstant']
-    TAG_FINDER =  re.compile('<.*?>')
+    TAG_FINDER = re.compile('<.*?>')
 
     def __init__(self, parsed_codes, class_name):
 
@@ -32,7 +32,7 @@ class JackCompiler(object):
 
         # Get the function name
         func_name = self._get_the_token()
-        func_name = '.'.joint([func_name, self.class_name])
+        func_name = '.'.join([func_name, self.class_name])
 
         # Get the number of arguments, by counting the
         # number of commas appeared in the parameters
@@ -208,30 +208,80 @@ class JackCompiler(object):
 
         # A static function call.
         elif self._get_the_tag() == self.IDENTIFIER:
-            the_token = self._get_the_token()
-            self._advance('.')
+            class_name = self._get_the_token()
+            self._eat(class_name)
+            self._eat('.')
+            func_name = self._get_the_token()
+            func_name = '.'.join([class_name, func_name])
+
+            self._eat('(')
+            num_args = self.write_expression()
+            self.writer.write_call(func_name, num_args)
+
+        # A method call
+
+
+
 
 
     def write_expression_list(self):
         pass
 
-    def _advance(self, token):
-        pass
+    def _advance(self):
+        """
+        Advance over pure tags
+
+        :return:
+        """
+
+        if self._get_the_token() != '':
+            raise ValueError('Cannot advance over tokens!')
+
+        if len(self.parsed_codes) <= self.progress:
+            raise IndexError('No tag to advance over anymore!')
+
+        self.progress += 1
+
+        return
+
+    def _eat(self, token):
+        """
+        Advance over a given token.
+        Raise ValueError if the current code does not match\
+        the given token.
+
+        :return:
+        """
+
+        print(self._get_the_token())
+        if self._get_the_token() != token:
+            raise ValueError('No {0} to eat'.format(token))
+
+        if len(self.parsed_codes) <= self.progress:
+            raise IndexError('No codes to compile anymore')
+
+        self.progress += 1
+
+        return
 
     def _get_the_token(self):
         current_line = self.parsed_codes[self.progress]
-        return re.sub(self.TAG_FINDER,'' , current_line)
+        return re.sub(self.TAG_FINDER, '', current_line)
 
     def _get_the_tag(self):
 
         current_line = self.parsed_codes[self.progress]
-        return re.match(self.TAG_FINDER, current_line)
+        tag = re.match(self.TAG_FINDER, current_line).strip('<>')
+        if tag.split()[0] in self.VARIABLES:
+            return 'variable'
 
-    def _parse_variable_tag(self):
+        return tag
 
-        pass
+    def _parse_var_tag(self):
 
-    def _strip_var(self):
-        pass
+        current_line = self.parsed_codes[self.progress]
+        tag = re.match(self.TAG_FINDER, current_line).strip('<>').split()
+
+        return tag
 
 
