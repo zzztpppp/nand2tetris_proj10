@@ -7,8 +7,11 @@ class JackCompiler(object):
     """
     Compile a jack class from token codes.
     """
-
+    UNARY_OP = ['-', '~']
+    OPS = ['+', '-', '*', '/', '&amp;', '|', '&lt;', '&gt;', '=']
     VARIABLES = [SymbolTable._CLASS_KIND, SymbolTable._METHOD_KIND]
+    OPS_MAP = {'+': 'add', '-': 'sub', '&amp': 'and', '|': 'or', '&lt': 'lt', '&gt': 'gt', '=': 'eq'}
+    CONSTANTS = ['integerConstant', 'stringConstant', 'keywordConstant']
 
     def __init__(self, parsed_codes, class_name):
 
@@ -132,19 +135,58 @@ class JackCompiler(object):
         else:
             self.writer.write_pop(var_type, index)
 
+        # Advance over the tail.
+        self._advance()
+
         return
 
-
     def write_expression(self):
-        pass
+        """
+        Write the VM code of an expression.
+        :return:
+        """
+
+        # Advance over the expression header.
+        self._advance()
+
+        # Compile the expression element by element(term or op)
+        # the op is written if and if only if 2 terms are written.
+        terms_written = 0
+        the_op = None
+        while self._get_the_tag != self._EXPRESSION_END:
+            if self._get_the_token() in self.OPS:
+                the_op = self._get_the_token()
+            elif self._get_the_tag()  == self.TERM_START:
+                self.write_term()
+                terms_written += 1
+
+            if terms_written == 2:
+                if the_op in self.OPS_MAP.keys():
+                    self.writer.write_arithmetic(self.OPS_MAP[the_op])
+                elif the_op == '*':
+                    self.writer.write_call('Math.multiply', 2)
+                elif the_op == '/':
+                    self.writer.write_call('Math.divide', 2)
+
+                terms_written = 1
+
+        self._advance()
 
     def write_term(self):
-        pass
+        self._advance()
+        if self._get_the_tag() in self.CONSTANTS:
+            self.writer.write_push('constant', self._get_the_token())
+
+        # A static function call.
+        elif self._get_the_tag() == self.IDENTIFIER:
+            the_token = self._get_the_token()
+            self._advance('.')
+            
 
     def write_expression_list(self):
         pass
 
-    def _advance(self):
+    def _advance(self, token):
         pass
 
     def _get_the_token(self):
