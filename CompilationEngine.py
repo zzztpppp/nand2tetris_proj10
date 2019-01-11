@@ -245,8 +245,7 @@ class CompilationEngine(object):
         """
 
         var_kind = 'VAR'
-        var_type = None
-        var_name = None
+
         self._eat('var')
         
         if self._get_the_token() in self.VAR_TYPE or self._get_the_token_type() == 'identifier':
