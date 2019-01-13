@@ -13,10 +13,15 @@ class JackCompiler(object):
     VARIABLES = [SymbolTable._CLASS_KIND, SymbolTable._METHOD_KIND]
     OPS_MAP = {'+': 'add', '-': 'sub', '&amp': 'and', '|': 'or', '&lt': 'lt', '&gt': 'gt', '=': 'eq'}
     CONSTANTS = ['integerConstant', 'stringConstant', 'keywordConstant']
+    INSTANCE_FUNCS = ['constructor', 'method']
+    STATIC_FUNCS = ['function']
     TAG_FINDER = re.compile('<.*?>')
+    CLASS_VAR_DEC_START = '<classVarDec>'
     IDENTIFIER = 'identifier'
+    FUNC_START = '<subroutineDec>'
     STATEMENTS_START = '<statements>'
     PARAM_LIST_END = '</parameterList>'
+    PARAM_LIST_START = '<parameterList>'
     DO_START = '<doStatement>'
     IF_START = '<ifStatement>'
     LET_START = '<letStatement>'
@@ -37,40 +42,79 @@ class JackCompiler(object):
         self.labels = 0
 
     def write_class(self):
-        pass
+        """
+        Write the VM code of a class
 
-    def write_subroutine_dec(self):
-        for _ in range(3):
-            self._advance()
+        :return:
+        """
 
-        # Get the function name
-        func_name = self._get_the_token()
-        func_name = '.'.join([func_name, self.class_name])
+        self._advance()
+        self._eat('class')
+        self._eat(self.class_name)
+        self._eat('{')
 
-        # Get the number of arguments, by counting the
-        # number of commas appeared in the parameters
-        num_args = 0
-        while True:
-            if self._get_the_tag() == self.SYMBOL:
-                num_args += 1
-                self._advance()
-            elif self._get_the_tag() == self.PARAM_LIST_END:
-                break
-        num_args += 1
-        self.writer.write_function(func_name, num_args)
+        while self._get_the_token() != self.FUNC_START:
+            self._advance_hard()
+
+        while self._get_the_token() == self.FUNC_START:
+            self.write_subroutine_dec()
+
+        self._eat('}')
+        self._advance_hard()
 
         return
 
-    def write_subroutine_body(self):
+    def write_subroutine_dec(self):
         """
-        Write the VM code of a subroutine
-        body.
+        Write the VM code for a
+        subroutine.
+
         :return:
         """
+
+        # Get the functions name and type
+        self._advance_hard()
+        subroutine_type = self._get_the_token()
+        self._eat(subroutine_type)
+        self._eat(self.class_name)
+        func_name = self._get_the_token()
+        func_name = '.'.join([self.class_name, func_name])
+
+        # Deal with parameter list, get the number of
+        # parameters the function possesses.
+        n_args = self.write_parameter_list()
+        if type in self.INSTANCE_FUNCS:
+            n_args += 1
+
+        # Function tag
+        self.writer.write_function(func_name, n_args)
+
+        # Deal with the function body
+        self.write_subroutine_body(type)
+
+        # Subroutine end.
+        self._advance()
+
+        return
+
+    def write_subroutine_body(self, type):
+        """
+        Write the VM code for subroutine body.
+        :param type:
+        :return:
+        """
+
+        if self._get_the_tag() != '<subroutineBody>':
+            raise ValueError('No subroutine body to process!')
 
         # Ignore the variable declaration.
         while self._get_the_tag() != self.STATEMENTS_START:
             self._advance()
+
+        # Allocate the memory and align to the base address.
+        # TODO memory allocation for constructor.
+        if type == 'constructor':
+            pass
 
         self.write_statements()
 
@@ -378,6 +422,15 @@ class JackCompiler(object):
         if len(self.parsed_codes) <= self.progress:
             raise IndexError('No tag to advance over anymore!')
 
+        self.progress += 1
+
+        return
+
+    def _advance_hard(self):
+        """
+        Force the compilation engine to advance a line of code.
+        :return:
+        """
         self.progress += 1
 
         return
