@@ -11,6 +11,7 @@ class JackCompiler(object):
     UNARY_OP = ['-', '~']
     OPS = ['+', '-', '*', '/', '&amp;', '|', '&lt;', '&gt;', '=']
     VARIABLES = [SymbolTable._CLASS_KIND, SymbolTable._METHOD_KIND]
+    VAR_MAP = {'static': 'static', 'field': 'this', 'ARG': 'argument', 'VAR': 'local'}
     OPS_MAP = {'+': 'add', '-': 'sub', '&amp': 'and', '|': 'or', '&lt': 'lt', '&gt': 'gt', '=': 'eq'}
     CONSTANTS = ['integerConstant', 'stringConstant', 'keywordConstant']
     INSTANCE_FUNCS = ['constructor', 'method']
@@ -33,13 +34,14 @@ class JackCompiler(object):
     EXPRESSION_LIST_END = '</expressionList>'
     TERM_START = '<term>'
 
-    def __init__(self, parsed_codes, class_name):
+    def __init__(self, parsed_codes, class_name, size):
 
         self.parsed_codes = parsed_codes
         self.progress = 0
         self.class_name = class_name
         self.writer = VMWriter(class_name + '.vm')
         self.labels = 0
+        self.size = size
 
     def write_class(self):
         """
@@ -89,18 +91,28 @@ class JackCompiler(object):
         # Function tag
         self.writer.write_function(func_name, n_args)
 
+        # Allocate the memory and align to the base address.
+        if type == 'constructor':
+            self.writer.write_push('constant', self.size)
+            self.writer.write_call('Memory.alloc', 1)
+            self.writer.write_pop('pointer', 0)
+
+        if type == 'method':
+            self.writer.write_push('argument', 0)
+            self.writer.write_pop('pointer', 0)
+
         # Deal with the function body
-        self.write_subroutine_body(type)
+        self.write_subroutine_body()
 
         # Subroutine end.
         self._advance()
 
         return
 
-    def write_subroutine_body(self, type):
+    def write_subroutine_body(self):
         """
-        Write the VM code for subroutine body.
-        :param type:
+        Write the subroutine body.
+
         :return:
         """
 
@@ -111,12 +123,10 @@ class JackCompiler(object):
         while self._get_the_tag() != self.STATEMENTS_START:
             self._advance()
 
-        # Allocate the memory and align to the base address.
-        # TODO memory allocation for constructor.
-        if type == 'constructor':
-            pass
-
         self.write_statements()
+
+        self._eat('}')
+        self._advance()
 
         return
 
@@ -288,10 +298,9 @@ class JackCompiler(object):
         self.write_expression()
 
         # Assign values to the assigner
-        # TODO: Convert var_type to segment.
         if array_assignment:
             self.writer.write_pop('temp', 0)
-            self.writer.write_push(var_type, index)
+            self.writer.write_push(self.VAR_MAP[var_type], index)
             self.writer.write_arithmetic('add')
             self.writer.write_pop('pointer', 1)
             self.writer.write_push('temp', 0)
