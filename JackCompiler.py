@@ -4,6 +4,42 @@ from VMwriter import VMWriter
 from SymbolTable import SymbolTable
 
 
+def compile_file(file):
+    """
+    Compile a given file or a whole directory.
+    :param : string
+                 A file name or directory name.
+    :return:
+    """
+    import os
+    if os.path.isdir(file):
+        for name in os.listdir(file):
+            file_path = os.path.join(file, name)
+            compile_file(file_path)
+    else:
+        _compile_file(file)
+
+    return
+
+
+def _compile_file(file_path):
+    """
+    Compile a single file
+    :param file_path: string
+    :return:
+    """
+    if not file_path.endswith('.xml'):
+        return
+
+    with open(file_path) as f:
+        tokens = f.readlines()
+        # Ignore the '<tokens>' signature
+        compiler = JackCompiler(tokens, file_path[:-4], 3)
+        compiler.write_class()
+
+    return
+
+
 class JackCompiler(object):
     """
     Compile a jack class from token codes.
@@ -55,10 +91,9 @@ class JackCompiler(object):
         self._eat(self.class_name)
         self._eat('{')
 
-        while self._get_the_token() != self.FUNC_START:
+        while self._get_the_tag() != self.FUNC_START:
             self._advance_hard()
-
-        while self._get_the_token() == self.FUNC_START:
+        while self._get_the_tag() == self.FUNC_START:
             self.write_subroutine_dec()
 
         self._eat('}')
@@ -80,24 +115,27 @@ class JackCompiler(object):
         self._eat(subroutine_type)
         self._eat(self.class_name)
         func_name = self._get_the_token()
+        self._eat(func_name)
         func_name = '.'.join([self.class_name, func_name])
 
         # Deal with parameter list, get the number of
         # parameters the function possesses.
+        self._eat('(')
         n_args = self.write_parameter_list()
-        if type in self.INSTANCE_FUNCS:
+        self._eat(')')
+        if subroutine_type == 'method':
             n_args += 1
 
         # Function tag
         self.writer.write_function(func_name, n_args)
 
         # Allocate the memory and align to the base address.
-        if type == 'constructor':
+        if subroutine_type == 'constructor':
             self.writer.write_push('constant', self.size)
             self.writer.write_call('Memory.alloc', 1)
             self.writer.write_pop('pointer', 0)
 
-        if type == 'method':
+        if subroutine_type == 'method':
             self.writer.write_push('argument', 0)
             self.writer.write_pop('pointer', 0)
 
@@ -121,7 +159,7 @@ class JackCompiler(object):
 
         # Ignore the variable declaration.
         while self._get_the_tag() != self.STATEMENTS_START:
-            self._advance()
+            self._advance_hard()
 
         self.write_statements()
 
@@ -141,7 +179,11 @@ class JackCompiler(object):
         n_args = 0
         while self._get_the_tag() != self.PARAM_LIST_END:
             if self._get_the_token() == ',':
+                self._eat(',')
                 n_args += 1
+            else:
+                self._advance_hard()
+        self._advance()
 
         return n_args + 1
 
@@ -424,7 +466,7 @@ class JackCompiler(object):
 
         :return:
         """
-
+        print(self._get_the_tag())
         if self._get_the_token() != '':
             raise ValueError('Cannot advance over tokens!')
 
@@ -466,12 +508,12 @@ class JackCompiler(object):
 
     def _get_the_token(self):
         current_line = self.parsed_codes[self.progress]
-        return re.sub(self.TAG_FINDER, '', current_line)
+        return re.sub(self.TAG_FINDER, '', current_line).strip()
 
     def _get_the_tag(self):
 
         current_line = self.parsed_codes[self.progress]
-        tag = re.match(self.TAG_FINDER, current_line).group(0).strip('<>')
+        tag = re.match(self.TAG_FINDER, current_line).group(0)
         if tag.split()[0] in self.VARIABLES:
             return 'variable'
 
@@ -489,3 +531,9 @@ class JackCompiler(object):
         self.labels += 1
 
         return str(self.labels)
+
+
+if __name__ == '__main__':
+    import sys
+    file_name = sys.argv[1]
+    compile_file(file_name)

@@ -3,6 +3,7 @@
 import re
 from SymbolTable import SymbolTable
 
+
 def compile_file(file):
     """
     Compile a given file or a whole directory.
