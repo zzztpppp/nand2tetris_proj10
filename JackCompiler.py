@@ -227,15 +227,38 @@ class JackCompiler(object):
         self._advance()
         self._eat('do')
 
-        func_name = self._get_the_token()
-        func_name = '.'.join([self.class_name, func_name])
+        is_method = True
+        the_name = self._get_the_token()
+        if self._get_the_tag() == self.IDENTIFIER:
+            self._eat(the_name)
+            if self._get_the_token() == '.':
+                is_method = False
+                self._eat('.')
+                func_name = self._get_the_token()
+                self._eat(func_name)
+                func_name = '.'.join([the_name, func_name])
+            else:
+                self.writer.write_push('constant', 'this')
+                func_name = '.'.join([self.class_name, the_name])
+        else:
+            var_tag = self._parse_var_tag()
+            self._eat(the_name)
+            var_type = var_tag[1]
+            self.writer.write_push(var_tag[0], var_tag[2])
+            self._eat('.')
+            the_name = self._get_the_token()
+            func_name = '.'.join([var_type, the_name])
+            self._eat(the_name)
 
-        self._eat(self._get_the_token())
         self._eat('(')
         n_args = self.write_expression_list()
+        if is_method:
+            n_args += 1
         self._eat(')')
         self.writer.write_call(func_name, n_args)
 
+        self._eat(';')
+        self._advance()
         return
 
     def write_return(self):
@@ -247,11 +270,16 @@ class JackCompiler(object):
         """
 
         value_returned = False
-        while self._get_the_tag() != self.RETURN_END:
-            self._advance()
-            if self._get_the_tag() == self.EXPRESSION_START:
-                self.write_expression()
-                value_returned = True
+        self._advance()
+        print('Fuck')
+        self._eat('return')
+
+        print(self._get_the_tag())
+        if self._get_the_tag() == self.EXPRESSION_START:
+            value_returned = True
+            self.write_expression()
+        self._eat(';')
+        self._advance()
 
         if not value_returned:
             self.writer.write_push('constant', 1)
@@ -472,7 +500,7 @@ class JackCompiler(object):
                 self._eat(',')
             else:
                 self._advance()
-
+        self._advance()
         return n_args
 
     def _advance(self):
