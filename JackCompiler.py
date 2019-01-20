@@ -54,7 +54,7 @@ class JackCompiler(object):
     STATIC_FUNCS = ['function']
     TAG_FINDER = re.compile('<.*?>')
     CLASS_VAR_DEC_START = '<classVarDec>'
-    IDENTIFIER = 'identifier'
+    IDENTIFIER = '<identifier>'
     FUNC_START = '<subroutineDec>'
     STATEMENTS_START = '<statements>'
     PARAM_LIST_END = '</parameterList>'
@@ -69,6 +69,7 @@ class JackCompiler(object):
     EXPRESSION_END = '</expression>'
     EXPRESSION_LIST_END = '</expressionList>'
     TERM_START = '<term>'
+    ALL_STATEMENTS = [DO_START, LET_START, RETURN_END, WHILE_START, IF_START]
 
     def __init__(self, parsed_codes, class_name, size):
 
@@ -78,6 +79,7 @@ class JackCompiler(object):
         self.writer = VMWriter(class_name + '.vm')
         self.labels = 0
         self.size = size
+        self.function_table = {}
 
     def write_class(self):
         """
@@ -115,6 +117,11 @@ class JackCompiler(object):
         self._eat(subroutine_type)
         self._eat(self.class_name)
         func_name = self._get_the_token()
+
+        # Store into a dictionary
+        # for the convenience of in-class call.
+        self.function_table[func_name] = subroutine_type
+
         self._eat(func_name)
         func_name = '.'.join([self.class_name, func_name])
 
@@ -156,6 +163,8 @@ class JackCompiler(object):
 
         if self._get_the_tag() != '<subroutineBody>':
             raise ValueError('No subroutine body to process!')
+        self._advance()
+        self._eat('{')
 
         # Ignore the variable declaration.
         while self._get_the_tag() != self.STATEMENTS_START:
@@ -192,8 +201,7 @@ class JackCompiler(object):
         self._advance()
 
         # Write the 5 types of statements
-        while self._get_the_tag() in self.STATEMENTS_START:
-
+        while self._get_the_tag() in self.ALL_STATEMENTS:
             the_tag = self._get_the_tag()
             if the_tag == self.DO_START:
                 self.write_do()
@@ -222,6 +230,7 @@ class JackCompiler(object):
         func_name = self._get_the_token()
         func_name = '.'.join([self.class_name, func_name])
 
+        self._eat(self._get_the_token())
         self._eat('(')
         n_args = self.write_expression_list()
         self._eat(')')
@@ -320,21 +329,23 @@ class JackCompiler(object):
         """
 
         # Advance over head.
-        while self._get_the_tag() != self.IDENTIFIER or self._get_the_tag() != self.VARIABLES:
-            self._advance()
+        self._advance()
+        self._eat('let')
+        print('Here')
 
         tag = self._parse_var_tag()
         var_type = tag[0]
         index = tag[2]
-        self._advance()
+        self._eat(self._get_the_token())
 
         array_assignment = False
-        while self._get_the_token() != '=':
-            self._advance()
-            if self._get_the_token() == '[':
-                array_assignment = True
-                self._advance()
-                self.write_expression()
+        if self._get_the_token() == '[':
+            array_assignment = True
+            self._eat('[')
+            self.write_expression()
+            self._eat(']')
+
+        self._eat('=')
 
         # Write the vm code for assignee
         self.write_expression()
@@ -351,6 +362,7 @@ class JackCompiler(object):
             self.writer.write_pop(var_type, index)
 
         # Advance over the tail.
+        self._eat(';')
         self._advance()
 
         return
@@ -368,7 +380,7 @@ class JackCompiler(object):
         # the op is written if and if only if 2 terms are written.
         terms_written = 0
         the_op = None
-        while self._get_the_tag != self.EXPRESSION_END:
+        while self._get_the_tag() != self.EXPRESSION_END:
             if self._get_the_token() in self.OPS:
                 the_op = self._get_the_token()
             elif self._get_the_tag() == self.TERM_START:
@@ -405,8 +417,8 @@ class JackCompiler(object):
             self._eat(')')
             self.writer.write_call(func_name, num_args)
 
-        # A variable operation
-        elif self._get_the_tag() == 'variable':
+        # An object operation
+        else:
             var_name = self._get_the_token()
             var_tag = self._parse_var_tag()
             segment = var_tag[0]
@@ -442,6 +454,8 @@ class JackCompiler(object):
             else:
                 self.writer.write_push(segment, index)
 
+        self._advance()
+
         return
 
     def write_expression_list(self):
@@ -455,6 +469,7 @@ class JackCompiler(object):
             if self._get_the_tag() == self.EXPRESSION_START:
                 n_args += 1
                 self.write_expression()
+                self._eat(',')
             else:
                 self._advance()
 
