@@ -49,7 +49,7 @@ class JackCompiler(object):
     VARIABLES = [SymbolTable._CLASS_KIND, SymbolTable._METHOD_KIND]
     VAR_MAP = {'static': 'static', 'field': 'this', 'ARG': 'argument', 'VAR': 'local'}
     OPS_MAP = {'+': 'add', '-': 'sub', '&amp': 'and', '|': 'or', '&lt': 'lt', '&gt': 'gt', '=': 'eq'}
-    CONSTANTS = ['integerConstant', 'stringConstant', 'keywordConstant']
+    CONSTANTS = ['<integerConstant>', '<stringConstant>', '<keyword>']
     INSTANCE_FUNCS = ['constructor', 'method']
     STATIC_FUNCS = ['function']
     TAG_FINDER = re.compile('<.*?>')
@@ -69,7 +69,7 @@ class JackCompiler(object):
     EXPRESSION_END = '</expression>'
     EXPRESSION_LIST_END = '</expressionList>'
     TERM_START = '<term>'
-    ALL_STATEMENTS = [DO_START, LET_START, RETURN_END, WHILE_START, IF_START]
+    ALL_STATEMENTS = [DO_START, LET_START, RETURN_START, WHILE_START, IF_START]
 
     def __init__(self, parsed_codes, class_name, size):
 
@@ -203,6 +203,7 @@ class JackCompiler(object):
         # Write the 5 types of statements
         while self._get_the_tag() in self.ALL_STATEMENTS:
             the_tag = self._get_the_tag()
+            print('Fuck the statement is ', the_tag)
             if the_tag == self.DO_START:
                 self.write_do()
             if the_tag == self.IF_START:
@@ -213,7 +214,6 @@ class JackCompiler(object):
                 self.write_return()
             if the_tag == self.WHILE_START:
                 self.write_while()
-
         self._advance()
         return
 
@@ -238,7 +238,7 @@ class JackCompiler(object):
                 self._eat(func_name)
                 func_name = '.'.join([the_name, func_name])
             else:
-                self.writer.write_push('constant', 'this')
+                self.writer.write_push('pointer', 0)
                 func_name = '.'.join([self.class_name, the_name])
         else:
             var_tag = self._parse_var_tag()
@@ -271,10 +271,7 @@ class JackCompiler(object):
 
         value_returned = False
         self._advance()
-        print('Fuck')
         self._eat('return')
-
-        print(self._get_the_tag())
         if self._get_the_tag() == self.EXPRESSION_START:
             value_returned = True
             self.write_expression()
@@ -362,7 +359,7 @@ class JackCompiler(object):
         print('Here')
 
         tag = self._parse_var_tag()
-        var_type = tag[0]
+        var_type = self.VAR_MAP[tag[0]]
         index = tag[2]
         self._eat(self._get_the_token())
 
@@ -381,7 +378,7 @@ class JackCompiler(object):
         # Assign values to the assigner
         if array_assignment:
             self.writer.write_pop('temp', 0)
-            self.writer.write_push(self.VAR_MAP[var_type], index)
+            self.writer.write_push(var_type, index)
             self.writer.write_arithmetic('add')
             self.writer.write_pop('pointer', 1)
             self.writer.write_push('temp', 0)
@@ -429,11 +426,17 @@ class JackCompiler(object):
 
     def write_term(self):
         self._advance()
-        if self._get_the_tag() in self.CONSTANTS:
-            self.writer.write_push('constant', self._get_the_token())
+        the_tag = self._get_the_tag()
+        if the_tag in self.CONSTANTS:
+            the_token = self._get_the_token()
+            if the_token == 'this':
+                self.writer.write_push('pointer', 0)
+            else:
+                self.writer.write_push('constant', the_token)
+            self._eat(the_token)
 
         # A static function call.
-        elif self._get_the_tag() == self.IDENTIFIER:
+        elif the_tag == self.IDENTIFIER:
             class_name = self._get_the_token()
             self._eat(class_name)
             self._eat('.')
@@ -449,7 +452,7 @@ class JackCompiler(object):
         else:
             var_name = self._get_the_token()
             var_tag = self._parse_var_tag()
-            segment = var_tag[0]
+            segment = self.VAR_MAP[var_tag[0]]
             index = var_tag[2]
             self._eat(var_name)
 
