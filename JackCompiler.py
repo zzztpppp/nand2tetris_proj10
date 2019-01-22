@@ -57,18 +57,44 @@ class JackCompiler(object):
     IDENTIFIER = '<identifier>'
     FUNC_START = '<subroutineDec>'
     STATEMENTS_START = '<statements>'
+    STATEMENTS_END = '</statements>'
+
     PARAM_LIST_END = '</parameterList>'
     PARAM_LIST_START = '<parameterList>'
+
     DO_START = '<doStatement>'
+    DO_END = '</doStatement>'
+
     IF_START = '<ifStatement>'
+    IF_END = '</ifStatement>'
+
     LET_START = '<letStatement>'
+    LET_END = '</letStatement>'
+
     RETURN_START = '<returnStatement>'
     RETURN_END = '</returnStatement>'
+
     WHILE_START = '<whileStatement>'
+    WHILE_END = '</whileStatement>'
+
     EXPRESSION_START = '<expression>'
     EXPRESSION_END = '</expression>'
+
+    EXPRESSION_LIST_START = '<expressionList>'
     EXPRESSION_LIST_END = '</expressionList>'
+
     TERM_START = '<term>'
+    TERM_END = '</term>'
+
+    CLASS_START = '<class>'
+    CLASS_END = '</class>'
+
+    FUNC_DEC_START = '<subroutineDec>'
+    FUNC_DEC_END = '</subroutineDec>'
+
+    FUNC_BODY_START = '<subroutineBody>'
+    FUNC_BODY_END = '</subroutineBody>'
+
     ALL_STATEMENTS = [DO_START, LET_START, RETURN_START, WHILE_START, IF_START]
 
     def __init__(self, parsed_codes, class_name, size):
@@ -88,7 +114,7 @@ class JackCompiler(object):
         :return:
         """
 
-        self._advance()
+        self._advance(self.CLASS_START)
         self._eat('class')
         self._eat(self.class_name)
         self._eat('{')
@@ -112,17 +138,18 @@ class JackCompiler(object):
         """
 
         # Get the functions name and type
-        self._advance_hard()
+        self._advance(self.FUNC_DEC_START)
         subroutine_type = self._get_the_token()
         self._eat(subroutine_type)
-        self._eat(self.class_name)
+        return_type = self._get_the_token()
+        self._eat(return_type)
         func_name = self._get_the_token()
+        self._eat(func_name)
 
         # Store into a dictionary
         # for the convenience of in-class call.
         self.function_table[func_name] = subroutine_type
 
-        self._eat(func_name)
         func_name = '.'.join([self.class_name, func_name])
 
         # Deal with parameter list, get the number of
@@ -150,7 +177,7 @@ class JackCompiler(object):
         self.write_subroutine_body()
 
         # Subroutine end.
-        self._advance()
+        self._advance(self.FUNC_DEC_END)
 
         return
 
@@ -163,7 +190,7 @@ class JackCompiler(object):
 
         if self._get_the_tag() != '<subroutineBody>':
             raise ValueError('No subroutine body to process!')
-        self._advance()
+        self._advance(self.FUNC_BODY_START)
         self._eat('{')
 
         # Ignore the variable declaration.
@@ -173,7 +200,7 @@ class JackCompiler(object):
         self.write_statements()
 
         self._eat('}')
-        self._advance()
+        self._advance(self.FUNC_BODY_END)
 
         return
 
@@ -185,6 +212,7 @@ class JackCompiler(object):
         :return: Int number of arguments.
         """
 
+        self._advance(self.PARAM_LIST_END)
         n_args = 0
         while self._get_the_tag() != self.PARAM_LIST_END:
             if self._get_the_token() == ',':
@@ -192,13 +220,13 @@ class JackCompiler(object):
                 n_args += 1
             else:
                 self._advance_hard()
-        self._advance()
+        self._advance(self.PARAM_LIST_START)
 
         return n_args + 1
 
     def write_statements(self):
         # Advance over the statements wrapper.
-        self._advance()
+        self._advance(self.STATEMENTS_START)
 
         # Write the 5 types of statements
         while self._get_the_tag() in self.ALL_STATEMENTS:
@@ -214,7 +242,7 @@ class JackCompiler(object):
                 self.write_return()
             if the_tag == self.WHILE_START:
                 self.write_while()
-        self._advance()
+        self._advance(self.STATEMENTS_END)
         return
 
     def write_do(self):
@@ -224,7 +252,7 @@ class JackCompiler(object):
         """
         # Advance over the do statement wrapper
 
-        self._advance()
+        self._advance(self.DO_START)
         self._eat('do')
 
         is_method = True
@@ -258,7 +286,7 @@ class JackCompiler(object):
         self.writer.write_call(func_name, n_args)
 
         self._eat(';')
-        self._advance()
+        self._advance(self.DO_END)
         return
 
     def write_return(self):
@@ -270,13 +298,13 @@ class JackCompiler(object):
         """
 
         value_returned = False
-        self._advance()
+        self._advance(self.RETURN_START)
         self._eat('return')
         if self._get_the_tag() == self.EXPRESSION_START:
             value_returned = True
             self.write_expression()
         self._eat(';')
-        self._advance()
+        self._advance(self.RETURN_END)
 
         if not value_returned:
             self.writer.write_push('constant', 1)
@@ -297,7 +325,7 @@ class JackCompiler(object):
 
         self.writer.write_label(label_1)
 
-        self._advance()
+        self._advance(self.WHILE_START)
         self._eat('while')
         self._eat('(')
         self.write_expression()
@@ -305,7 +333,10 @@ class JackCompiler(object):
         self.writer.write_arithmetic('not')
         self.writer.write_if(label_2)
 
+        self._eat('{')
         self.write_statements()
+        self._eat('}')
+        self._advance(self.WHILE_END)
         self.writer.write_goto(label_1)
         self.writer.write_label(label_2)
 
@@ -323,7 +354,7 @@ class JackCompiler(object):
         label_2 = '_'.join([self.class_name, self._get_label()])
 
         # Advance over the if head.
-        self._advance()
+        self._advance(self.IF_START)
         self._eat('if')
         self._eat('(')
         self.write_expression()
@@ -344,6 +375,7 @@ class JackCompiler(object):
             self._eat('}')
         self.writer.write_label(label_2)
 
+        self._advance(self.IF_END)
         return
 
     def write_let(self):
@@ -354,7 +386,7 @@ class JackCompiler(object):
         """
 
         # Advance over head.
-        self._advance()
+        self._advance(self.LET_START)
         self._eat('let')
         print('Here')
 
@@ -388,7 +420,7 @@ class JackCompiler(object):
 
         # Advance over the tail.
         self._eat(';')
-        self._advance()
+        self._advance(self.LET_END)
 
         return
 
@@ -399,7 +431,7 @@ class JackCompiler(object):
         """
 
         # Advance over the expression header.
-        self._advance()
+        self._advance(self.EXPRESSION_START)
 
         # Compile the expression element by element(term or op)
         # the op is written if and if only if 2 terms are written.
@@ -422,10 +454,12 @@ class JackCompiler(object):
 
                 terms_written = 1
 
-        self._advance()
+        self._advance(self.EXPRESSION_END)
+
+        return
 
     def write_term(self):
-        self._advance()
+        self._advance(self.TERM_START)
         the_tag = self._get_the_tag()
         if the_tag in self.CONSTANTS:
             the_token = self._get_the_token()
@@ -485,7 +519,7 @@ class JackCompiler(object):
             else:
                 self.writer.write_push(segment, index)
 
-        self._advance()
+        self._advance(self.TERM_END)
 
         return
 
@@ -495,30 +529,35 @@ class JackCompiler(object):
         :return:
         """
 
+        self._advance(self.EXPRESSION_LIST_START)
         n_args = 0
         while self._get_the_tag() != self.EXPRESSION_LIST_END:
+            print(self._get_the_tag() + 'Fuck')
             if self._get_the_tag() == self.EXPRESSION_START:
                 n_args += 1
                 self.write_expression()
-                self._eat(',')
-            else:
-                self._advance()
-        self._advance()
+            self._advance_hard()
+
+        self._advance(self.EXPRESSION_LIST_END)
         return n_args
 
-    def _advance(self):
+    def _advance(self, tag):
         """
         Advance over pure tags
 
         :return:
         """
-        print(self._get_the_tag())
+
         if self._get_the_token() != '':
             raise ValueError('Cannot advance over tokens!')
 
         if len(self.parsed_codes) <= self.progress:
             raise IndexError('No tag to advance over anymore!')
 
+        if self._get_the_tag() != tag:
+            raise ValueError('No such tag {tag} to advance over'.format(tag=tag))
+
+        print(self._get_the_tag())
         self.progress += 1
 
         return
@@ -528,6 +567,7 @@ class JackCompiler(object):
         Force the compilation engine to advance a line of code.
         :return:
         """
+        print(self.parsed_codes[self.progress])
         self.progress += 1
 
         return

@@ -114,7 +114,7 @@ class VMWriter(object):
         :return:
         """
 
-        code = 'return'
+        code = 'return\n'
         self.vm_file.write(code)
 
         return
