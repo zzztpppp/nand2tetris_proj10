@@ -212,17 +212,26 @@ class JackCompiler(object):
         :return: Int number of arguments.
         """
 
-        self._advance(self.PARAM_LIST_END)
-        n_args = 0
+        self._advance(self.PARAM_LIST_START)
+        n_commas = 0
+        has_args = False
+
+        # If commas are detected, number of arguments of
+        # the given function must be num commas + 1
         while self._get_the_tag() != self.PARAM_LIST_END:
             if self._get_the_token() == ',':
                 self._eat(',')
-                n_args += 1
+                n_commas += 1
             else:
+                has_args = True
                 self._advance_hard()
-        self._advance(self.PARAM_LIST_START)
+        self._advance(self.PARAM_LIST_END)
 
-        return n_args + 1
+        # No commas detected and no arguments.
+        if n_commas == 0 and not has_args:
+            return 0
+
+        return n_commas + 1
 
     def write_statements(self):
         # Advance over the statements wrapper.
@@ -231,7 +240,6 @@ class JackCompiler(object):
         # Write the 5 types of statements
         while self._get_the_tag() in self.ALL_STATEMENTS:
             the_tag = self._get_the_tag()
-            print('Fuck the statement is ', the_tag)
             if the_tag == self.DO_START:
                 self.write_do()
             if the_tag == self.IF_START:
@@ -388,7 +396,6 @@ class JackCompiler(object):
         # Advance over head.
         self._advance(self.LET_START)
         self._eat('let')
-        print('Here')
 
         tag = self._parse_var_tag()
         var_type = self.VAR_MAP[tag[0]]
@@ -440,12 +447,15 @@ class JackCompiler(object):
         while self._get_the_tag() != self.EXPRESSION_END:
             if self._get_the_token() in self.OPS:
                 the_op = self._get_the_token()
+                self._eat(the_op)
             elif self._get_the_tag() == self.TERM_START:
                 self.write_term()
                 terms_written += 1
 
             if terms_written == 2:
+                print(the_op)
                 if the_op in self.OPS_MAP.keys():
+                    print('=========================================================', the_op)
                     self.writer.write_arithmetic(self.OPS_MAP[the_op])
                 elif the_op == '*':
                     self.writer.write_call('Math.multiply', 2)
@@ -481,6 +491,11 @@ class JackCompiler(object):
             num_args = self.write_expression_list()
             self._eat(')')
             self.writer.write_call(func_name, num_args)
+
+        elif self._get_the_token() == '(':
+            self._eat('(')
+            self.write_expression()
+            self._eat(')')
 
         # An object operation
         else:
@@ -532,12 +547,12 @@ class JackCompiler(object):
         self._advance(self.EXPRESSION_LIST_START)
         n_args = 0
         while self._get_the_tag() != self.EXPRESSION_LIST_END:
-            print(self._get_the_tag() + 'Fuck')
+            # print(self._get_the_tag() + 'Fuck')
             if self._get_the_tag() == self.EXPRESSION_START:
                 n_args += 1
                 self.write_expression()
-            self._advance_hard()
-
+            else:
+                self._advance_hard()
         self._advance(self.EXPRESSION_LIST_END)
         return n_args
 
@@ -565,9 +580,18 @@ class JackCompiler(object):
     def _advance_hard(self):
         """
         Force the compilation engine to advance a line of code.
+        This method can't do advancing over a pure tag.
         :return:
         """
         print(self.parsed_codes[self.progress])
+
+        # if self._get_the_token() == '':
+        #     raise ValueError('Hard advancing cannot advance over a pure tag ', self._get_the_tag())
+        if self._get_the_tag() == self.EXPRESSION_LIST_END:
+            raise ValueError('Fuck! How dare you advance this???????????????????????????????????')
+        if len(self.parsed_codes) <= self.progress:
+            raise IndexError('No codes to compile anymore')
+
         self.progress += 1
 
         return
