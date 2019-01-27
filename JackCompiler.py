@@ -48,7 +48,8 @@ class JackCompiler(object):
     OPS = ['+', '-', '*', '/', '&amp;', '|', '&lt;', '&gt;', '=']
     VARIABLES = [SymbolTable._CLASS_KIND, SymbolTable._METHOD_KIND]
     VAR_MAP = {'static': 'static', 'field': 'this', 'ARG': 'argument', 'VAR': 'local'}
-    OPS_MAP = {'+': 'add', '-': 'sub', '&amp': 'and', '|': 'or', '&lt': 'lt', '&gt': 'gt', '=': 'eq'}
+    OPS_MAP = {'+': 'add', '-': 'sub', '&amp;': 'and', '|': 'or', '&lt;': 'lt', '&gt;': 'gt', '=': 'eq'}
+    U_OPS_MAP = {'-': 'neg', '~': 'not'}
     CONSTANTS = ['<integerConstant>', '<stringConstant>', '<keyword>']
     INSTANCE_FUNCS = ['constructor', 'method']
     STATIC_FUNCS = ['function']
@@ -455,7 +456,6 @@ class JackCompiler(object):
             if terms_written == 2:
                 print(the_op)
                 if the_op in self.OPS_MAP.keys():
-                    print('=========================================================', the_op)
                     self.writer.write_arithmetic(self.OPS_MAP[the_op])
                 elif the_op == '*':
                     self.writer.write_call('Math.multiply', 2)
@@ -485,6 +485,7 @@ class JackCompiler(object):
             self._eat(class_name)
             self._eat('.')
             func_name = self._get_the_token()
+            self._eat(func_name)
             func_name = '.'.join([class_name, func_name])
 
             self._eat('(')
@@ -496,6 +497,13 @@ class JackCompiler(object):
             self._eat('(')
             self.write_expression()
             self._eat(')')
+
+        # An unary op
+        elif self._get_the_token() in self.UNARY_OP:
+            unary_op = self._get_the_token()
+            self._eat(unary_op)
+            self.write_term()
+            self.writer.write_arithmetic(self.U_OPS_MAP[unary_op])
 
         # An object operation
         else:
@@ -604,6 +612,9 @@ class JackCompiler(object):
 
         :return:
         """
+
+        if token == '&lt':
+            raise ValueError('The sneaky bastard is here')
 
         print(self._get_the_token())
         if self._get_the_token() != token:

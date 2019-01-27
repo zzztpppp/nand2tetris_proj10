@@ -53,7 +53,7 @@ class VMWriter(object):
         :param label: String. The label name.
         :return:
         """
-        code = '{label}\n'.format(label=label)
+        code = 'label {label}\n'.format(label=label)
         self.vm_file.write(code)
 
         return
