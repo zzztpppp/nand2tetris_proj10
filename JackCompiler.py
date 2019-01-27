@@ -281,7 +281,7 @@ class JackCompiler(object):
             var_tag = self._parse_var_tag()
             self._eat(the_name)
             var_type = var_tag[1]
-            self.writer.write_push(var_tag[0], var_tag[2])
+            self.writer.write_push(self.VAR_MAP[var_tag[0]], var_tag[2])
             self._eat('.')
             the_name = self._get_the_token()
             func_name = '.'.join([var_type, the_name])
@@ -380,7 +380,7 @@ class JackCompiler(object):
         if self._get_the_token() == 'else':
             self._eat('else')
             self._eat('{')
-            self.write_expression()
+            self.write_statements()
             self._eat('}')
         self.writer.write_label(label_2)
 

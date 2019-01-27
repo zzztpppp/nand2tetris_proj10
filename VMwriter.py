@@ -16,6 +16,8 @@ class VMWriter(object):
         :return:
         """
 
+        if segment == 'VAR':
+            raise ValueError('No VAR please!')
         code = 'push {segment} {index}\n'.format(segment=segment, index=index)
         self.vm_file.write(code)
 
