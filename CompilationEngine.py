@@ -38,7 +38,7 @@ def _compile_file(file_path):
         result = compiler.get_result()
 
     # Write the result into .xml file
-    with open(file_path[0:file_path.find('.') - 1] + '.xml', 'w') as output:
+    with open(file_path[0:file_path.find('.')] + '.xml', 'w') as output:
         result = '\n'.join(result)
         output.write(result)
     return

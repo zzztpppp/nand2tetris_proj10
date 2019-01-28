@@ -653,12 +653,12 @@ class JackCompiler(object):
         return
 
     def _get_the_token(self):
-        current_line = self.parsed_codes[self.progress]
+        current_line = self.parsed_codes[self.progress].strip()
         return re.sub(self.TAG_FINDER, '', current_line).strip()
 
     def _get_the_tag(self):
 
-        current_line = self.parsed_codes[self.progress]
+        current_line = self.parsed_codes[self.progress].strip()
         tag = re.match(self.TAG_FINDER, current_line).group(0)
         if tag.split()[0] in self.VARIABLES:
             return 'variable'
@@ -667,7 +667,7 @@ class JackCompiler(object):
 
     def _parse_var_tag(self):
 
-        current_line = self.parsed_codes[self.progress]
+        current_line = self.parsed_codes[self.progress].strip()
         tag = re.match(self.TAG_FINDER, current_line).group(0).strip('<>').split()
 
         return tag
