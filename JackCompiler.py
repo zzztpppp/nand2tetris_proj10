@@ -51,6 +51,7 @@ class JackCompiler(object):
     OPS_MAP = {'+': 'add', '-': 'sub', '&amp;': 'and', '|': 'or', '&lt;': 'lt', '&gt;': 'gt', '=': 'eq'}
     U_OPS_MAP = {'-': 'neg', '~': 'not'}
     CONSTANTS = ['<integerConstant>', '<stringConstant>', '<keyword>']
+    KEY_WORD_CONST_MAP = {'true': 1, 'false':1 , 'null': 0}
     INSTANCE_FUNCS = ['constructor', 'method']
     STATIC_FUNCS = ['function']
     TAG_FINDER = re.compile('<.*?>')
@@ -294,6 +295,8 @@ class JackCompiler(object):
         self._eat(')')
         self.writer.write_call(func_name, n_args)
 
+        # Drop the return value.
+        self.writer.write_pop('temp', 1)
         self._eat(';')
         self._advance(self.DO_END)
         return
@@ -475,6 +478,28 @@ class JackCompiler(object):
             the_token = self._get_the_token()
             if the_token == 'this':
                 self.writer.write_push('pointer', 0)
+            elif the_token == 'that':
+                self.writer.write_push('pointer', 1)
+            elif the_tag == '<stringConstant>':
+                string_length = len(the_token)
+                self.writer.write_push('constant', string_length)
+                self.writer.write_call('String.new', 1)
+
+                # Construct the string in a loop.
+                # For sake of convenience, copy
+                # the new initialized string as many
+                # times as we need to construct it.
+                self.writer.write_pop('temp', 1)
+                for _ in range(string_length + 1):
+                    self.writer.write_push('temp', 1)
+                for i in range(string_length):
+                    char = ord(the_token[i])
+                    self.writer.write_push('constant', i)
+                    self.writer.write_push('constant', char)
+                    self.writer.write_call('String.setCharAt', 3)
+                    self.writer.write_pop('temp', 1)
+            elif the_tag == '<keyword>':
+                self.writer.write_push('constant', self.KEY_WORD_CONST_MAP[the_token])
             else:
                 self.writer.write_push('constant', the_token)
             self._eat(the_token)
