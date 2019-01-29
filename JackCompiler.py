@@ -2,7 +2,8 @@ import re
 
 from VMwriter import VMWriter
 from SymbolTable import SymbolTable
-
+from Tokenizer import Tokenizer
+from CompilationEngine import CompilationEngine
 
 def compile_file(file):
     """
@@ -34,7 +35,7 @@ def _compile_file(file_path):
     with open(file_path) as f:
         tokens = f.readlines()
         # Ignore the '<tokens>' signature
-        compiler = JackCompiler(tokens, file_path[:-4], 3)
+        compiler = JackCompiler(tokens, file_path[:-4], 10)
         compiler.write_class()
 
     return
@@ -494,9 +495,8 @@ class JackCompiler(object):
                     self.writer.write_push('temp', 1)
                 for i in range(string_length):
                     char = ord(the_token[i])
-                    self.writer.write_push('constant', i)
                     self.writer.write_push('constant', char)
-                    self.writer.write_call('String.setCharAt', 3)
+                    self.writer.write_call('String.appendChar', 2)
                     self.writer.write_pop('temp', 1)
             elif the_tag == '<keyword>':
                 self.writer.write_push('constant', self.KEY_WORD_CONST_MAP[the_token])
@@ -677,6 +677,34 @@ class JackCompiler(object):
         self.labels += 1
 
         return str(self.labels)
+
+
+def compile(file):
+    """
+    Compile a given file or a whole directory.
+    :param : string
+                 A file name or directory name.
+    :return:
+    """
+    import os
+    if os.path.isdir(file):
+        for name in os.listdir(file):
+            file_path = os.path.join(file, name)
+            compile(file_path)
+    else:
+        _compile(file)
+
+    return
+
+def _compile(file_path):
+    if not file_path.endswith('.jack'):
+        return
+
+    with open(file_path) as f:
+        # Ignore the '<tokens>' signature
+        tokenizer = Tokenizer.tokenize(file_path)
+
+    return
 
 
 if __name__ == '__main__':
