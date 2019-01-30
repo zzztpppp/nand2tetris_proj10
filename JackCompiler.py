@@ -180,7 +180,6 @@ class JackCompiler(object):
         :return: The number of local variables
                  a function possesses.
         """
-
         num_variables = 0
         while True:
             if self._get_the_tag() == self.VAR_START:
@@ -193,10 +192,11 @@ class JackCompiler(object):
     def _local_var_count(self):
 
         n_var = 1
-        if self._get_the_token() != self.VAR_START:
+        if self._get_the_tag() != self.VAR_START:
             raise ValueError('A variable declaration needed here')
         while self._get_the_tag() != self.VAR_END:
             if self._get_the_token() == ',':
+                self._eat(',')
                 n_var += 1
             else:
                 self._advance_hard()
@@ -220,22 +220,18 @@ class JackCompiler(object):
         # Deal with the function local variable and name space.
         # Allocate the memory and align to the base address.
         subroutine_type = self.function_table[func_name]
-        if subroutine_type == 'constructor':
-            self.writer.write_push('constant', self.size)
-            self.writer.write_call('Memory.alloc', 1)
-            self.writer.write_pop('pointer', 0)
-
-        if subroutine_type == 'method':
-            self.writer.write_push('argument', 0)
-            self.writer.write_pop('pointer', 0)
-
         n_vars = self.write_local_var_dec()
         func_name = '.'.join([self.class_name, func_name])
         self.writer.write_function(func_name, n_vars)
 
-        # Ignore the variable declaration.
-        while self._get_the_tag() != self.STATEMENTS_START:
-            self._advance_hard()
+        # VM code needed for object manipulation.
+        if subroutine_type == 'constructor':
+            self.writer.write_push('constant', self.size)
+            self.writer.write_call('Memory.alloc', 1)
+            self.writer.write_pop('pointer', 0)
+        if subroutine_type == 'method':
+            self.writer.write_push('argument', 0)
+            self.writer.write_pop('pointer', 0)
 
         self.write_statements()
 
