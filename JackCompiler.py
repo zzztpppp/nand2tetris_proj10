@@ -733,9 +733,25 @@ def _compile(file_path):
     if not file_path.endswith('.jack'):
         return
 
-    with open(file_path) as f:
-        # Ignore the '<tokens>' signature
-        tokenizer = Tokenizer.tokenize(file_path)
+
+    # Tokenize the code
+    import os
+    print('Processing file', os.path.basename(file_path), '=============================================')
+
+    Tokenizer.tokenize(file_path)
+    token_path = file_path.replace('jack', 'xml')
+    with open(token_path) as f:
+        tokens = f.readlines()
+
+    # Syntax analysis
+    compiler = CompilationEngine(tokens[1:-1])
+    result = compiler.get_result()
+
+    # Compile to VM code
+    print('Processing file', os.path.basename(token_path))
+    num_fields = compiler.symbol_table.var_count('field')
+    compiler = JackCompiler(result, os.path.basename(token_path)[:-4], num_fields)
+    compiler.write_class()
 
     return
 
@@ -743,4 +759,4 @@ def _compile(file_path):
 if __name__ == '__main__':
     import sys
     file_name = sys.argv[1]
-    compile_file(file_name)
+    compile(file_name)
