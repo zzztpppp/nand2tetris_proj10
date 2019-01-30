@@ -98,6 +98,9 @@ class JackCompiler(object):
     FUNC_BODY_START = '<subroutineBody>'
     FUNC_BODY_END = '</subroutineBody>'
 
+    VAR_START = '<varDec>'
+    VAR_END = '</varDec>'
+
     ALL_STATEMENTS = [DO_START, LET_START, RETURN_START, WHILE_START, IF_START]
 
     def __init__(self, parsed_codes, class_name, size):
@@ -153,38 +156,56 @@ class JackCompiler(object):
         # for the convenience of in-class call.
         self.function_table[func_name] = subroutine_type
 
-        func_name = '.'.join([self.class_name, func_name])
+        # func_name = '.'.join([self.class_name, func_name])
 
         # Deal with parameter list, get the number of
         # parameters the function possesses.
         self._eat('(')
         n_args = self.write_parameter_list()
         self._eat(')')
-        if subroutine_type == 'method':
-            n_args += 1
-
-        # Function tag
-        self.writer.write_function(func_name, n_args)
-
-        # Allocate the memory and align to the base address.
-        if subroutine_type == 'constructor':
-            self.writer.write_push('constant', self.size)
-            self.writer.write_call('Memory.alloc', 1)
-            self.writer.write_pop('pointer', 0)
-
-        if subroutine_type == 'method':
-            self.writer.write_push('argument', 0)
-            self.writer.write_pop('pointer', 0)
 
         # Deal with the function body
-        self.write_subroutine_body()
+        self.write_subroutine_body(func_name)
 
         # Subroutine end.
         self._advance(self.FUNC_DEC_END)
 
         return
 
-    def write_subroutine_body(self):
+    def write_local_var_dec(self):
+        """
+        Deal with the local variable
+        declaration.
+
+        :return: The number of local variables
+                 a function possesses.
+        """
+
+        num_variables = 0
+        while True:
+            if self._get_the_tag() == self.VAR_START:
+                num_variables += self._local_var_count()
+            else:
+                break
+
+        return num_variables
+
+    def _local_var_count(self):
+
+        n_var = 1
+        if self._get_the_token() != self.VAR_START:
+            raise ValueError('A variable declaration needed here')
+        while self._get_the_tag() != self.VAR_END:
+            if self._get_the_token() == ',':
+                n_var += 1
+            else:
+                self._advance_hard()
+
+        self._advance(self.VAR_END)
+
+        return n_var
+
+    def write_subroutine_body(self, func_name):
         """
         Write the subroutine body.
 
@@ -195,6 +216,22 @@ class JackCompiler(object):
             raise ValueError('No subroutine body to process!')
         self._advance(self.FUNC_BODY_START)
         self._eat('{')
+
+        # Deal with the function local variable and name space.
+        # Allocate the memory and align to the base address.
+        subroutine_type = self.function_table[func_name]
+        if subroutine_type == 'constructor':
+            self.writer.write_push('constant', self.size)
+            self.writer.write_call('Memory.alloc', 1)
+            self.writer.write_pop('pointer', 0)
+
+        if subroutine_type == 'method':
+            self.writer.write_push('argument', 0)
+            self.writer.write_pop('pointer', 0)
+
+        n_vars = self.write_local_var_dec()
+        func_name = '.'.join([self.class_name, func_name])
+        self.writer.write_function(func_name, n_vars)
 
         # Ignore the variable declaration.
         while self._get_the_tag() != self.STATEMENTS_START:
