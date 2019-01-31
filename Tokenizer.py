@@ -80,6 +80,8 @@ class Tokenizer(object):
                     output.write('    <symbol> ' + '&gt;' + ' </symbol>\n')
                 elif c == '<':
                     output.write('    <symbol> ' + '&lt;' + ' </symbol>\n')
+                elif c == '&':
+                    output.write('    <symbol> ' + '&amp;' + ' </symbol>\n')
                 else:
                     output.write('    <symbol> ' + c + ' </symbol>\n')
                 current_token = ''

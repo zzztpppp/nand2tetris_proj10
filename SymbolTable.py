@@ -22,7 +22,8 @@ class SymbolTable(object):
         # Method level symbol table
         # to record argument and local variables
         # in a function.
-        self._method_table = dict()
+        self._method_table_arg = dict()
+        self._method_table_var = dict()
         self._method_indices = dict.fromkeys(self._METHOD_KIND, 0)
 
     def define(self, name, t, kind):
@@ -42,7 +43,13 @@ class SymbolTable(object):
 
         # Determine which sub-table the given variable belongs to.
         is_class = kind in self._CLASS_KIND
-        table = self._class_table if is_class else self._method_table
+        if is_class:
+            table = self._class_table
+        elif kind == 'ARG':
+            table = self._method_table_arg
+        else:
+            table = self._method_table_var
+
         indices = self._class_indices if is_class else self._method_indices
 
         # Insert to the sub-table
@@ -106,11 +113,13 @@ class SymbolTable(object):
         :return: List. Contains type, kind, index.
         """
 
-        info = self._method_table.get(name)
+        info = self._method_table_var.get(name)
+
+        if info is None:
+            info = self._method_table_arg.get(name)
 
         if info is None:
             info = self._class_table.get(name)
-
         return info
 
     def drop_method_table(self):
@@ -119,7 +128,9 @@ class SymbolTable(object):
         :return:
         """
 
-        self._method_table = dict()
+        self._method_table_arg = dict()
+        self._method_table_var = dict()
+        self._method_indices = dict.fromkeys(self._METHOD_KIND, 0)
 
         return
 
@@ -133,5 +144,24 @@ class SymbolTable(object):
 
 if __name__ == '__main__':
     table_test = SymbolTable()
-    table_test.define('a', 'int', 'STATIC')
+    table_test.define('a', 'int', 'static')
     print(table_test.index_of('a'), table_test.kind_of('a'), table_test.type_of('a'))
+    table_test.define('b', 'int', 'ARG')
+    print(table_test.index_of('b'), table_test.kind_of('b'), table_test.type_of('b'))
+    table_test.define('c', 'int', 'ARG')
+    print(table_test.index_of('c'), table_test.kind_of('c'), table_test.type_of('c'))
+    table_test.drop_method_table()
+    table_test.define('m', 'int', 'ARG')
+    print(table_test.index_of('m'), table_test.kind_of('m'), table_test.type_of('m'))
+    table_test.define('l', 'int', 'ARG')
+    print(table_test.index_of('l'), table_test.kind_of('l'), table_test.type_of('l'))
+    table_test.define('g', 'int', 'VAR')
+    print(table_test.index_of('g'), table_test.kind_of('g'), table_test.type_of('g'))
+    table_test.define('g', 'int', 'ARG')
+    print(table_test.index_of('g'), table_test.kind_of('g'), table_test.type_of('g'))
+
+
+
+
+
+

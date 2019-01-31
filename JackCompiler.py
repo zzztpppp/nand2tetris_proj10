@@ -52,7 +52,7 @@ class JackCompiler(object):
     OPS_MAP = {'+': 'add', '-': 'sub', '&amp;': 'and', '|': 'or', '&lt;': 'lt', '&gt;': 'gt', '=': 'eq'}
     U_OPS_MAP = {'-': 'neg', '~': 'not'}
     CONSTANTS = ['<integerConstant>', '<stringConstant>', '<keyword>']
-    KEY_WORD_CONST_MAP = {'true': 1, 'false':1 , 'null': 0}
+    KEY_WORD_CONST_MAP = {'true': -1, 'false': 0 , 'null': 0}
     INSTANCE_FUNCS = ['constructor', 'method']
     STATIC_FUNCS = ['function']
     TAG_FINDER = re.compile('<.*?>')
@@ -532,9 +532,18 @@ class JackCompiler(object):
                     self.writer.write_call('String.appendChar', 2)
                     self.writer.write_pop('temp', 1)
             elif the_tag == '<keyword>':
-                self.writer.write_push('constant', self.KEY_WORD_CONST_MAP[the_token])
+                if the_token == 'true':
+                    self.writer.write_push('constant', 1)
+                    self.writer.write_arithmetic('neg')
+                else:
+                    self.writer.write_push('constant', 0)
+
             else:
-                self.writer.write_push('constant', the_token)
+                if the_token[0] in self.U_OPS_MAP.keys():
+                    self.writer.write_push('constant', the_token[1:])
+                    self.writer.write_arithmetic(the_token[0])
+                else:
+                    self.writer.write_push('constant', the_token)
             self._eat(the_token)
 
         # A static function call.

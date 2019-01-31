@@ -52,7 +52,7 @@ class CompilationEngine(object):
     PRIMITIVE_RETURN_TYPE = ['int', 'char', 'boolean', 'void']
     STATEMENTS_TYPES = ['let', 'do', 'while', 'if', 'return']
     UNARY_OP = ['-', '~']
-    OPS = ['+', '-', '*', '/', '&amp;', '|', '&lt;', '&gt;', '=', '&']
+    OPS = ['+', '-', '*', '/', '&amp;', '|', '&lt;', '&gt;', '=']
     IF_STATEMENTS = ['if', 'else']
     KEYWORD_CONST = ['true', 'false', 'null', 'this']
     TERM_TYPE = ['identifier', 'keyword', 'integerConstant', 'stringConstant']
