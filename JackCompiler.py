@@ -584,14 +584,15 @@ class JackCompiler(object):
             if self._get_the_token() == '.':
                 self._eat('.')
                 method_name = self._get_the_token()
+                self._eat(method_name)
                 method_name = '.'.join([var_tag[1], method_name])
 
                 # Push the object's pointer
                 self.writer.write_push(segment, index)
 
                 self._eat('(')
+                nargs = self.write_expression_list() + 1
                 self._eat(')')
-                nargs = self.write_expression_list()
                 self.writer.write_call(method_name, nargs)
 
             # An array addressing
@@ -683,10 +684,10 @@ class JackCompiler(object):
         if token == '&lt':
             raise ValueError('The sneaky bastard is here')
 
-        print(self._get_the_token())
         if self._get_the_token() != token:
-            raise ValueError('No {0} to eat'.format(token))
+            raise ValueError('No {0} to eat, current token is {1}'.format(token, self._get_the_token()))
 
+        print(self._get_the_token())
         if len(self.parsed_codes) <= self.progress:
             raise IndexError('No codes to compile anymore')
 

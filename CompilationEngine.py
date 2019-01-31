@@ -150,10 +150,13 @@ class CompilationEngine(object):
         """
 
         # Rebuild a new sub-table for this method
-        self.symbol_table.drop_method_table()
+
 
         self.compilation_result.append('<subroutineDec>')
+
+        is_method = self._get_the_token() == 'method'
         self._eat(self._get_the_token())
+        self.symbol_table.drop_method_table(is_method)
         
         # Then token after the subroutine signature should be
         # the return type of the subroutine

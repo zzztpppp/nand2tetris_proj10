@@ -122,7 +122,7 @@ class SymbolTable(object):
             info = self._class_table.get(name)
         return info
 
-    def drop_method_table(self):
+    def drop_method_table(self, is_method):
         """
         Drop the method level sub-table
         :return:
@@ -131,6 +131,8 @@ class SymbolTable(object):
         self._method_table_arg = dict()
         self._method_table_var = dict()
         self._method_indices = dict.fromkeys(self._METHOD_KIND, 0)
+        if is_method:
+            self._method_indices['ARG'] = 1
 
         return
 
